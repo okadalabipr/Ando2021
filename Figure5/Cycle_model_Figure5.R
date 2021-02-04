@@ -1,0 +1,1282 @@
+library(edgeR)
+library(pracma)
+library(deSolve)
+library(DEoptim)
+library(scales)
+library(bio3d)
+library(car)
+library(openxlsx)
+library(ggplot2)
+
+#Draw a heatmap of data
+names <- read.table("../Data/ERGsubcluster2_Promoter_up500down500TSS_12012019.txt", sep = "\t",header=FALSE)
+names <- names[-which(names[,1]=="NFKBIA"),]
+names <- read.table("../Data/IRGsubcluster2_Promoter_up500down500TSS_12012019.txt", sep = "\t",header=FALSE)
+names[,1] <- as.character(names[,1])    
+names[which(names[,1]=="NKX3_1"),1] <- c("NKX3-1")
+names <- read.table("../Data/DRGsubcluster2_Promoter_up500down500TSS_12012019.txt", sep = "\t",header=FALSE)
+names <- names[,1]
+names <- sort(names)
+
+refall <- c()
+maxs <- c()
+for(r in 1:length(names)){
+  d <- names[r]
+  
+  ref <- wt2[which(rownames(wt2)==d),]
+  
+  data <- ref
+  zero <- data[1,1]
+  for(i in 1:13){
+    data[1,i] <- data[1,i]/zero
+  }
+  
+  refwtfc <- data.frame(x=seq(0,180,15),y=as.numeric(data[1,]))
+  
+  
+  ref <- kd2[which(rownames(kd2)==d),]
+  
+  data <- ref
+  zero <- data[1,1]
+  for(i in 1:13){
+    data[1,i] <- data[1,i]/zero
+  }
+  refkdfc <- data.frame(x=seq(0,180,15),y=as.numeric(data[1,]))
+  
+  df <- rbind(refwtfc,refkdfc)
+  df <- as.data.frame(df)
+  
+  df <- rescale(df[,2], to=c(0,1))
+  refwtfc <- data.frame(x=seq(0,180,15),y=df[1:13])
+  refkdfc <- data.frame(x=seq(0,180,15),y=df[14:26])
+  
+  refwt <- refwtfc[,2]
+  refkd <- refkdfc[,2]
+  
+  df <- c(refwt,refkd)
+  
+  refall <- c(refall, c(df))
+}
+refall <- data.frame(matrix(unlist(refall),ncol=26,byrow=T))  
+rownames(refall) <- names
+colnames(refall) <- rep(seq(0,180,15),2)
+refall <- t(refall)
+refall <- as.data.frame(refall)
+colnames(refall) <- names
+#refall <- refall[1:13,]   #siCtrl
+refall <- refall[14:26,]   #siIkBa
+
+p <- colnames(refall)
+t <- colnames(refall)
+refall$t <- seq(0,180,15)
+temp <- reshape2::melt(refall,
+                       id="t",
+                       measure=p 
+)
+temp$variable <- as.character(temp$variable)
+temp$value <- as.numeric(temp$value)
+
+g <- ggplot(temp,aes(as.factor(t),as.factor(variable)))+
+  geom_tile(aes(fill=value),color="grey40", stat="identity")+
+  #scale_fill_gradient(low="white",high="red",limits=c(0,1.0))+
+  scale_fill_gradient(low="white",high="mediumseagreen",limits=c(0,1.0))+
+  labs(x = "",y = "") + 
+  theme(panel.grid = element_blank())+#
+  scale_x_discrete(labels=c("0","15","30","45","60","75","90","105","120","135","150","165","180"),breaks=c("0","15","30","45","60","75","90","105","120","135","150","165","180"),expand = c(0, 0))+ 
+  scale_y_discrete(breaks=sort(names,decreasing = T),labels=waiver(),limits=sort(names,decreasing = T),expand = c(0, 0))+
+  theme(legend.position = "bottom",axis.ticks = element_blank(), axis.text.x = element_text(size = 7.0, angle = 0, hjust = 0.5, colour = "black"),axis.text.y=element_text(size = 5.6, angle = 0, hjust = 1, colour = "black",face="italic"));g
+
+#Draw a heatmap of simulation from IFFL model
+wtBase0 <- function(k1,k2,KD1,KD2) { 
+  
+  pars <- c(k1=k1,k2=k2,KD1=KD1,KD2=KD2)
+  
+  wtBaseModel0 <- function (times, State, pars) {
+    
+    pars <- c(k1=k1,k2=k2,KD1=KD1,KD2=KD2)
+    
+    
+    with(as.list(c(State, pars)),{
+      
+      A = 1-C-O
+      
+      k_1 <- 0.01*k1
+      k_2 <- 0.01*k2
+      k_3 <- 1
+      
+      f1 <- k1*((KD1*steadywt(times))/((KD1*steadywt(times))+1))*C
+      f_1 <- k_1 * O
+      f_3 <- k_3 *((0.5*A)/((0.5*A)+1))
+      
+      f2 <- k2*((KD2*steadywt(times))/((KD2*steadywt(times))+1))*O
+      f_2 <- k_2 * A
+      
+      
+      dC <- -f1+f_1+f_3
+      dO <- f1 - f2 - f_1 + f_2
+      
+      # return
+      return(list(c(dC, dO)))
+    })
+  }
+  
+  wtBaseModel <- function (times, State, pars) {
+    
+    pars <- c(k1=k1,k2=k2,KD1=KD1,KD2=KD2)
+    
+    
+    with(as.list(c(State, pars)),{
+      
+      A = 1-C-O
+      k_1 <- 0.01*k1
+      k_2 <- 0.01*k2
+      k_3 <- 1
+      
+      f1 <- k1*((KD1*inputwt(times))/((KD1*inputwt(times))+1))*C
+      f_1 <- k_1 * O
+      f_3 <- k_3 *((0.5*A)/((0.5*A)+1))
+      
+      f2 <- k2*((KD2*inputwt(times))/((KD2*inputwt(times))+1))*O
+      f_2 <- k_2 * A
+      
+      
+      
+      dC <- -f1+f_1+f_3
+      dO <- f1 - f2 - f_1 + f_2
+      
+      return(list(c(dC, dO)))
+    })
+  }
+  
+  ss.init <- ode(y=c(C=1,O=0), times=seq(-3600,0,1), wtBaseModel0, parms=pars)
+  ss.init <- as.data.frame(ss.init)
+  
+  
+  
+  out <- ode(y=c(C=ss.init[3601,2],O=ss.init[3601,3]), times=seq(0,10800,1), wtBaseModel, parms=pars)
+  
+  out <- as.data.frame(out)
+  out$A <- 1-(out$C+out$O) 
+  
+  out
+  
+  return(out)
+}
+
+wtModel0 <- function(kdeg) { 
+  
+  
+  signal2 <- data.frame(time = wtBase0(k1,k2,KD1,KD2)[,1],C = wtBase0(k1,k2,KD1,KD2)[,2],O = wtBase0(k1,k2,KD1,KD2)[,3])
+  signal2$A <- 1-(signal2$C+signal2$O)
+  sigimp2 <- approxfun(signal2$time, signal2$A, rule = 2)
+  active <- sigimp2
+  
+  mrnafirst <- (1*active(0))/kdeg
+  
+  odeModel <- function (times, state, pars) {
+    with(as.list(c(state, pars)),{
+      
+      dmrna <- (1*active(times))-(kdeg*mrna)
+      
+      return(list(c(dmrna)))
+    })
+  }
+  
+  state <- c(mrna=mrnafirst)
+  
+  out0 <- ode(y = state, times = seq(-3600,0,by=1),
+              func = odeModel, parms = pars)
+  out0 <- as.data.frame(out0)
+  return(out0)
+}
+
+wtModel <- function(kdeg,tau) { 
+  
+  
+  signal2 <- data.frame(time = wtBase0(k1,k2,KD1,KD2)[,1],C = wtBase0(k1,k2,KD1,KD2)[,2],O = wtBase0(k1,k2,KD1,KD2)[,3])
+  signal2$A <- 1-(signal2$C+signal2$O)
+  sigimp2 <- approxfun(signal2$time, signal2$A, rule = 2)
+  active <- sigimp2
+  
+  mrnafirst <- wtModel0(kdeg)[3601,2]
+  
+  odeModel <- function (times, state, pars) {
+    with(as.list(c(state, pars)),{
+      
+      dmrna <- (1*active(times-tau))-(kdeg*mrna)
+      
+      return(list(c(dmrna)))
+    })
+  }
+  
+  state <- c(mrna=mrnafirst)
+  
+  out0 <- ode(y = state, times = seq(0,10800,by=1),
+              func = odeModel, parms = pars)
+  out0 <- as.data.frame(out0)
+  return(out0)
+}
+
+wtModels <- function(k1,k2,KD1,KD2,kdeg,tau) { 
+  
+  pars <- c(k1=k1,k2=k2,KD1=KD1,KD2=KD2,kdeg=kdeg,tau=tau)
+  
+  wtBase0 <- function(k1,k2,KD1,KD2) { 
+    
+    pars <- c(k1=k1,k2=k2,KD1=KD1,KD2=KD2)
+    
+    wtBaseModel0 <- function (times, State, pars) {
+      
+      pars <- c(k1=k1,k2=k2,KD1=KD1,KD2=KD2)
+      
+      
+      with(as.list(c(State, pars)),{
+        
+        A = 1-C-O
+        
+        k_1 <- 0.01*k1
+        k_2 <- 0.01*k2
+        k_3 <- 1
+        
+        f1 <- k1*((KD1*steadywt(times))/((KD1*steadywt(times))+1))*C
+        f_1 <- k_1 * O
+        f_3 <- k_3 *((0.5*A)/((0.5*A)+1))
+        
+        f2 <- k2*((KD2*steadywt(times))/((KD2*steadywt(times))+1))*O
+        f_2 <- k_2 * A
+        
+        
+        
+        dC <- -f1+f_1+f_3
+        
+        dO <- f1 - f2 - f_1 + f_2
+        
+        # return
+        return(list(c(dC, dO)))
+      })
+    }
+    
+    wtBaseModel <- function (times, State, pars) {
+      
+      pars <- c(k1=k1,k2=k2,KD1=KD1,KD2=KD2)
+      
+      
+      with(as.list(c(State, pars)),{
+        
+        A = 1-C-O
+        k_1 <- 0.01*k1
+        k_2 <- 0.01*k2
+        k_3 <- 1  
+        
+        f1 <- k1*((KD1*inputwt(times))/((KD1*inputwt(times))+1))*C
+        f_1 <- k_1 * O
+        f_3 <- k_3 *((0.5*A)/((0.5*A)+1))
+        
+        f2 <- k2*((KD2*inputwt(times))/((KD2*inputwt(times))+1))*O
+        f_2 <- k_2 * A
+        
+        
+        
+        
+        
+        dC <- -f1+f_1+f_3
+        dO <- f1 - f2 - f_1 + f_2
+        
+        # return
+        return(list(c(dC, dO)))
+      })
+    }
+    
+    
+    ss.init <- ode(y=c(C=1,O=0), times=seq(-3600,0,1), wtBaseModel0, parms=pars)
+    ss.init <- as.data.frame(ss.init)
+    
+    
+    out <- ode(y=c(C=ss.init[3601,2],O=ss.init[3601,3]), times=seq(0,10800,1), wtBaseModel, parms=pars)
+    
+    out <- as.data.frame(out)
+    out$A <- 1-(out$C+out$O) 
+    
+    out
+    
+    return(out)
+  }
+  
+  wtModel0 <- function(kdeg) { 
+    
+    
+    signal2 <- data.frame(time = wtBase0(k1,k2,KD1,KD2)[,1],C = wtBase0(k1,k2,KD1,KD2)[,2],O = wtBase0(k1,k2,KD1,KD2)[,3])
+    signal2$A <- 1-(signal2$C+signal2$O)
+    sigimp2 <- approxfun(signal2$time, signal2$A, rule = 2)
+    active <- sigimp2
+    
+    mrnafirst <- (1*active(0))/kdeg
+    
+    odeModel <- function (times, state, pars) {
+      with(as.list(c(state, pars)),{
+        
+        dmrna <- (1*active(times))-(kdeg*mrna)
+        
+        return(list(c(dmrna)))
+      })
+    }
+    
+    state <- c(mrna=mrnafirst)
+    
+    out0 <- ode(y = state, times = seq(-3600,0,by=1),
+                func = odeModel, parms = pars)
+    out0 <- as.data.frame(out0)
+    return(out0)
+  }
+  
+  wtModel <- function(kdeg,tau) { 
+    
+    
+    
+    signal2 <- data.frame(time = wtBase0(k1,k2,KD1,KD2)[,1],C = wtBase0(k1,k2,KD1,KD2)[,2],O = wtBase0(k1,k2,KD1,KD2)[,3])
+    signal2$A <- 1-(signal2$C+signal2$O)
+    sigimp2 <- approxfun(signal2$time, signal2$A, rule = 2)
+    active <- sigimp2
+    
+    mrnafirst <- wtModel0(kdeg)[3601,2]
+    
+    odeModel <- function (times, state, pars) {
+      with(as.list(c(state, pars)),{
+        
+        dmrna <- (1*active(times-tau))-(kdeg*mrna)
+        
+        return(list(c(dmrna)))
+      })
+    }
+    
+    state <- c(mrna=mrnafirst)
+    
+    out0 <- ode(y = state, times = seq(0,10800,by=1),
+                func = odeModel, parms = pars)
+    out0 <- as.data.frame(out0)
+    return(out0)
+  }
+  
+  
+  
+  dftarget <- wtModel(kdeg,tau)
+  
+  x <- dftarget[which(dftarget[,1] %in% seq(0,10800,by=1)),1]
+  y <- dftarget[which(dftarget[,1] %in% seq(0,10800,by=1)),2]
+  df <- data.frame(time=x,mrna=y)
+  
+  return(df)
+}
+
+
+kdBase0 <- function(k1,k2,KD1,KD2) { 
+  
+  pars <- c(k1=k1,k2=k2,KD1=KD1,KD2=KD2)
+  
+  kdBaseModel0 <- function (times, State, pars) {
+    
+    pars <- c(k1=k1,k2=k2,KD1=KD1,KD2=KD2)
+    
+    
+    with(as.list(c(State, pars)),{
+      
+      A = 1-C-O
+      
+      k_1 <- 0.01*k1
+      k_2 <- 0.01*k2
+      k_3 <- 1 
+      
+      f1 <- k1*((KD1*steadykd(times))/((KD1*steadykd(times))+1))*C
+      f_1 <- k_1 * O
+      f_3 <- k_3 *((0.5*A)/((0.5*A)+1))
+      
+      f2 <- k2*((KD2*steadykd(times))/((KD2*steadykd(times))+1))*O
+      f_2 <- k_2 * A
+      
+      
+      dC <- -f1+f_1+f_3
+      dO <- f1 - f2 - f_1 + f_2
+      
+      return(list(c(dC, dO)))
+    })
+  }
+  
+  kdBaseModel <- function (times, State, pars) {
+    
+    pars <- c(k1=k1,k2=k2,KD1=KD1,KD2=KD2)
+    
+    
+    with(as.list(c(State, pars)),{
+      
+      A = 1-C-O
+      
+      k_1 <- 0.01*k1
+      k_2 <- 0.01*k2
+      k_3 <- 1
+      
+      f1 <- k1*((KD1*inputkd(times))/((KD1*inputkd(times))+1))*C
+      f_1 <- k_1 * O
+      f_3 <- k_3 *((0.5*A)/((0.5*A)+1))
+      
+      f2 <- k2*((KD2*inputkd(times))/((KD2*inputkd(times))+1))*O
+      f_2 <- k_2 * A
+      
+      
+      
+      dC <- -f1+f_1+f_3
+      dO <- f1 - f2 - f_1 + f_2
+      
+      return(list(c(dC, dO)))
+    })
+  }
+  
+  ss.init <- ode(y=c(C=1,O=0), times=seq(-3600,0,1), kdBaseModel0, parms=pars)
+  ss.init <- as.data.frame(ss.init)
+  
+  out <- ode(y=c(C=ss.init[3601,2],O=ss.init[3601,3]), times=seq(0,10800,1), kdBaseModel, parms=pars)
+  
+  out <- as.data.frame(out)
+  out$A <- 1-(out$C+out$O) 
+  
+  out
+  
+  return(out)
+}
+
+kdModel0 <- function(kdeg) { 
+  
+  
+  signal2 <- data.frame(time = kdBase0(k1,k2,KD1,KD2)[,1],C = kdBase0(k1,k2,KD1,KD2)[,2],O = kdBase0(k1,k2,KD1,KD2)[,3])
+  signal2$A <- 1-(signal2$C+signal2$O)
+  sigimp2 <- approxfun(signal2$time, signal2$A, rule = 2)
+  active <- sigimp2
+  
+  mrnafirst <- (1*active(0))/kdeg
+  
+  odeModel <- function (times, state, pars) {
+    with(as.list(c(state, pars)),{
+      
+      dmrna <- (1*active(times))-(kdeg*mrna)
+      
+      return(list(c(dmrna)))
+    })
+  }
+  
+  state <- c(mrna=mrnafirst)
+  
+  out0 <- ode(y = state, times = seq(-3600,0,by=1),
+              func = odeModel, parms = pars)
+  out0 <- as.data.frame(out0)
+  return(out0)
+}
+
+kdModel <- function(kdeg,tau) { 
+  
+  
+  
+  signal2 <- data.frame(time = kdBase0(k1,k2,KD1,KD2)[,1],C = kdBase0(k1,k2,KD1,KD2)[,2],O = kdBase0(k1,k2,KD1,KD2)[,3])
+  signal2$A <- 1-(signal2$C+signal2$O)
+  sigimp2 <- approxfun(signal2$time, signal2$A, rule = 2)
+  active <- sigimp2
+  
+  mrnafirst <- kdModel0(kdeg)[3601,2]
+  
+  odeModel <- function (times, state, pars) {
+    with(as.list(c(state, pars)),{
+      
+      dmrna <- (1*active(times-tau))-(kdeg*mrna)
+      
+      return(list(c(dmrna)))
+    })
+  }
+  
+  state <- c(mrna=mrnafirst)
+  
+  out0 <- ode(y = state, times = seq(0,10800,by=1),
+              func = odeModel, parms = pars)
+  out0 <- as.data.frame(out0)
+  return(out0)
+}
+
+kdModels <- function(k1,k2,KD1,KD2,kdeg,tau) { 
+  
+  pars <- c(k1=k1,k2=k2,KD1=KD1,KD2=KD2,kdeg=kdeg,tau=tau)
+  
+  kdBase0 <- function(k1,k2,KD1,KD2) { 
+    
+    pars <- c(k1=k1,k2=k2,KD1=KD1,KD2=KD2)
+    
+    kdBaseModel0 <- function (times, State, pars) {
+      
+      pars <- c(k1=k1,k2=k2,KD1=KD1,KD2=KD2)
+      
+      
+      with(as.list(c(State, pars)),{
+        
+        A = 1-C-O
+        
+        k_1 <- 0.01*k1
+        k_2 <- 0.01*k2
+        k_3 <- 1
+        
+        f1 <- k1*((KD1*steadykd(times))/((KD1*steadykd(times))+1))*C
+        f_1 <- k_1 * O
+        f_3 <- k_3 *((0.5*A)/((0.5*A)+1))
+        
+        f2 <- k2*((KD2*steadykd(times))/((KD2*steadykd(times))+1))*O
+        f_2 <- k_2 * A
+        
+        
+        dC <- -f1+f_1+f_3
+        dO <- f1 - f2 - f_1 + f_2
+        
+        return(list(c(dC, dO)))
+      })
+    }
+    
+    kdBaseModel <- function (times, State, pars) {
+      
+      pars <- c(k1=k1,k2=k2,KD1=KD1,KD2=KD2)
+      
+      with(as.list(c(State, pars)),{
+        
+        A = 1-C-O
+        
+        k_1 <- 0.01*k1
+        k_2 <- 0.01*k2
+        k_3 <- 1
+        
+        f1 <- k1*((KD1*inputkd(times))/((KD1*inputkd(times))+1))*C
+        f_1 <- k_1 * O
+        f_3 <- k_3 *((0.5*A)/((0.5*A)+1))
+        
+        f2 <- k2*((KD2*inputkd(times))/((KD2*inputkd(times))+1))*O
+        f_2 <- k_2 * A
+        
+        dC <- -f1+f_1+f_3
+        dO <- f1 - f2 - f_1 + f_2
+        
+        
+        return(list(c(dC, dO)))
+      })
+    }
+    
+    
+    ss.init <- ode(y=c(C=1,O=0), times=seq(-3600,0,1), kdBaseModel0, parms=pars)
+    ss.init <- as.data.frame(ss.init)
+    
+    
+    out <- ode(y=c(C=ss.init[3601,2],O=ss.init[3601,3]), times=seq(0,10800,1), kdBaseModel, parms=pars)
+    
+    
+    out <- as.data.frame(out)
+    out$A <- 1-(out$C+out$O) 
+    
+    out
+    
+    return(out)
+  }
+  
+  kdModel0 <- function(kdeg) { 
+    
+    
+    signal2 <- data.frame(time = kdBase0(k1,k2,KD1,KD2)[,1],C = kdBase0(k1,k2,KD1,KD2)[,2],O = kdBase0(k1,k2,KD1,KD2)[,3])
+    signal2$A <- 1-(signal2$C+signal2$O)
+    sigimp2 <- approxfun(signal2$time, signal2$A, rule = 2)
+    active <- sigimp2
+    
+    mrnafirst <- (1*active(0))/kdeg
+    
+    odeModel <- function (times, state, pars) {
+      with(as.list(c(state, pars)),{
+        
+        dmrna <- (1*active(times))-(kdeg*mrna)
+        
+        return(list(c(dmrna)))
+      })
+    }
+    
+    state <- c(mrna=mrnafirst)
+    
+    out0 <- ode(y = state, times = seq(-3600,0,by=1),
+                func = odeModel, parms = pars)
+    out0 <- as.data.frame(out0)
+    return(out0)
+  }
+  
+  kdModel <- function(kdeg,tau) { 
+    
+    
+    signal2 <- data.frame(time = kdBase0(k1,k2,KD1,KD2)[,1],C = kdBase0(k1,k2,KD1,KD2)[,2],O = kdBase0(k1,k2,KD1,KD2)[,3])
+    signal2$A <- 1-(signal2$C+signal2$O)
+    sigimp2 <- approxfun(signal2$time, signal2$A, rule = 2)
+    active <- sigimp2
+    
+    mrnafirst <- kdModel0(kdeg)[3601,2]
+    
+    odeModel <- function (times, state, pars) {
+      with(as.list(c(state, pars)),{
+        
+        dmrna <- (1*active(times-tau))-(kdeg*mrna)
+        
+        return(list(c(dmrna)))
+      })
+    }
+    
+    state <- c(mrna=mrnafirst)
+    
+    out0 <- ode(y = state, times = seq(0,10800,by=1),
+                func = odeModel, parms = pars)
+    out0 <- as.data.frame(out0)
+    return(out0)
+  }
+  
+  
+  dftarget <- kdModel(kdeg,tau)
+  
+  x <- dftarget[which(dftarget[,1] %in% seq(0,10800,by=1)),1]
+  y <- dftarget[which(dftarget[,1] %in% seq(0,10800,by=1)),2]
+  df <- data.frame(time=x,mrna=y)
+  
+  return(df)
+}
+
+smallest <- read.table("../Data/Cycle_ERGsmallest.txt", sep = "\t",skip=1)
+smallest <- read.table("../Data/Cycle_IRGsmallest.txt", sep = "\t",skip=1)
+smallest <- read.table("../Data/Cycle_DRGsmallest.txt", sep = "\t",skip=1)
+names <- smallest[,1]
+smallest <- smallest[,2:3]
+
+wtrmsdvalue <- c()
+kdrmsdvalue <- c()
+refall <- c()
+for(r in 1:length(names)[1]){
+  d <- names[r]
+  
+  #stackkari <- c()
+  #stack <- c()
+  #dfde <- c()
+  #file <- paste("../Optimized_parameters/Cycle_model/ERGsubcluster2/rep1/2_Cycle_",d,"_rep1",".txt",sep="")
+  #datafile <- read.table(file,sep="\t",skip=1) 
+  #datafile <- as.data.frame(datafile)
+  #dfde <- datafile[,2:8]
+  #dfde <- as.data.frame(dfde)
+  #colnames(dfde) <- c("RMSD","k1","k2","KD1","KD2","kdeg","tau")
+  #rep1dfde <- dfde
+  #
+  #k1 <- dfde[smallest[r,1],2]
+  #k2 <- dfde[smallest[r,1],3]
+  #KD1 <- dfde[smallest[r,1],4]
+  #KD2 <- dfde[smallest[r,1],5]
+  #kdeg <- dfde[smallest[r,1],6]
+  #tau <- dfde[smallest[r,1],7]
+  #rmsd <- dfde[smallest[r,1],1]
+#
+  #count <- read.csv("../Data/160712_ikbakd.csv")
+  #count1=count[,2:12]
+  #count1 <- data.frame(count1)
+  #mean <- count1[,2]
+  #condition <- count1[,1]
+  #time <- count1[,11]
+  #df <- data.frame(Time=time,Mean=mean,Con=condition)
+  #df1 <- df[1:13,]
+  ##df2 <- df[26:38,]
+  #x <- df1[,1]                                         
+  #y <- df1[,2] 
+  #signal <- data.frame(time = x,nfkb = y)
+  #wtsignal <- signal
+  #wtsignal$group <- rep("wt",dim(wtsignal)[1])
+  #
+  #df2 <- df[26:38,]
+  #x <- df2[,1]
+  #y <- df2[,2] 
+  #signal <- data.frame(time = x,nfkb = y)
+  #kdsignal <- signal
+  #kdsignal$group <- rep("kd",dim(wtsignal)[1]) 
+  #
+  #wtb <- wtsignal[1,2]
+  #for(i in 1:13){
+  #  wtsignal[i,2] <- wtsignal[i,2]/wtb
+  #}
+  #
+  #kdb <- kdsignal[1,2]
+  #for(i in 1:13){
+  #  kdsignal[i,2] <- kdsignal[i,2]/kdb
+  #}
+  #
+  #bothsignal <- rbind(wtsignal,kdsignal)
+  #bothsignal <- as.data.frame(bothsignal)
+  #
+  #df <- rescale(bothsignal[,2], to=c(2,100))
+  #df <- data.frame(time=rep(seq(0,10800,900),2),mrna=df)
+  #df <- df[1:13,]                                         
+  #
+  #fp <- pchipfun(df[,1], df[,2]) 
+  #f <- fp(seq(0, 10800, by = 1))
+  #inputwt <- f
+  #df <- data.frame(time=seq(0,10800,1),mrna=f)
+  #signal <- data.frame(time = df[,1],nfkb = df[,2])
+  #sigimp <- approxfun(signal$t, signal$nfkb, rule = 2)
+  #inputwt <- sigimp
+  #
+  #bothsignal <- rbind(wtsignal,kdsignal)
+  #bothsignal <- as.data.frame(bothsignal)
+  #
+  #df <- rescale(bothsignal[,2], to=c(2,100))
+  #df <- data.frame(time=rep(seq(0,10800,900),2),mrna=df)
+  #df <- df[14:26,]                                         
+  #
+  #fp <- pchipfun(df[,1], df[,2]) 
+  #f <- fp(seq(0, 10800, by = 1))
+  #inputkd <- f
+  #df <- data.frame(time=seq(0,10800,1),mrna=f)
+  #signal <- data.frame(time = df[,1],nfkb = df[,2])
+  #sigimp <- approxfun(signal$t, signal$nfkb, rule = 2)
+  #inputkd <- sigimp
+  #
+  #normwt <- data.frame(x=seq(0,10800,1),y=wtModels(k1,k2,KD1,KD2,kdeg,tau)[,2])
+  #minnorm <- normwt[1,2]
+  #for(i in 1:dim(normwt)[1]){
+  #  normwt[i,2] <- normwt[i,2]/minnorm
+  #}
+  #
+  #normkd <- data.frame(x=seq(0,10800,1),y=kdModels(k1,k2,KD1,KD2,kdeg,tau)[,2])
+  #minnorm <- normkd[1,2]
+  #for(i in 1:dim(normkd)[1]){
+  #  normkd[i,2] <- normkd[i,2]/minnorm
+  #}
+  #
+  #
+  #normdf <- rbind(normwt,normkd)
+  #normdf <- as.data.frame(normdf)
+  #
+  #normdf <- rescale(normdf[,2], to=c(0,1))
+  #norm <- c()
+  #norm <- data.frame(x=rep(seq(0,10800,1),2),y=normdf)
+  #
+  #alloutswt <- norm[1:10801,]   
+  #alloutskd <- norm[10802:21602,]
+  
+ 
+  
+  stackkari <- c()
+  stack <- c()
+  dfde <- c()
+  file <- paste("../Optimized_parameters/Cycle_model/ERGsubcluster2/rep2/2_Cycle_",d,"_rep2",".txt",sep="")
+  datafile <- read.table(file,sep="\t",skip=1) 
+  datafile <- as.data.frame(datafile)
+  dfde <- datafile[,2:8]
+  dfde <- as.data.frame(dfde)
+  colnames(dfde) <- c("RMSD","k1","k2","KD1","KD2","kdeg","tau")
+  rep2dfde <- dfde
+  
+  k1 <- dfde[smallest[r,2],2]
+  k2 <- dfde[smallest[r,2],3]
+  KD1 <- dfde[smallest[r,2],4]
+  KD2 <- dfde[smallest[r,2],5]
+  kdeg <- dfde[smallest[r,2],6]
+  tau <- dfde[smallest[r,2],7]
+  rmsd <- dfde[smallest[r,2],1]
+  
+  count <- read.csv("../Data/160617_ikbakd.csv")
+  count1=count[,2:12]
+  count1 <- data.frame(count1)
+  mean <- count1[,2]
+  condition <- count1[,1]
+  time <- count1[,11]
+  df <- data.frame(Time=time,Mean=mean,Con=condition)
+  df1 <- df[1:13,]
+  #df2 <- df[26:38,]
+  x <- df1[,1]                                         
+  y <- df1[,2] 
+  signal <- data.frame(time = x,nfkb = y)
+  wtsignal <- signal
+  wtsignal$group <- rep("wt",dim(wtsignal)[1])
+  
+  df2 <- df[26:38,]
+  x <- df2[,1]
+  y <- df2[,2] 
+  signal <- data.frame(time = x,nfkb = y)
+  kdsignal <- signal
+  kdsignal$group <- rep("kd",dim(wtsignal)[1]) 
+  
+  wtb <- wtsignal[1,2]
+  for(i in 1:13){
+    wtsignal[i,2] <- wtsignal[i,2]/wtb
+  }
+  
+  kdb <- kdsignal[1,2]
+  for(i in 1:13){
+    kdsignal[i,2] <- kdsignal[i,2]/kdb
+  }
+  
+  df <- rescale(wtsignal[1:4,2], to=c(2,100))
+  unit <- (wtsignal[4,2]-wtsignal[1,2])/(df[4]-df[1])
+  wts <- c()
+  for(i in 5:13){
+    kari <- wtsignal[i,2]-wtsignal[1,2]
+    final <- kari/unit+2
+    wts[i] <- final
+  }
+  wts <- na.omit(wts)
+  wts <- c(df,wts)
+  
+  kds <- c()
+  for(i in 1:dim(kdsignal)[1]){
+    kari <- kdsignal[i,2]-wtsignal[1,2]
+    final <- kari/unit+2
+    kds[i] <- final
+  }
+  
+  df <- data.frame(time=seq(0,10800,900),mrna=wts)
+  
+  fp <- pchipfun(df[,1], df[,2]) 
+  f <- fp(seq(0, 10800, by = 1))
+  inputwt <- f
+  df <- data.frame(time=seq(0,10800,1),mrna=f)
+  signal <- data.frame(time = df[,1],nfkb = df[,2])
+  sigimp <- approxfun(signal$t, signal$nfkb, rule = 2)
+  inputwt <- sigimp
+  
+  df <- data.frame(time=seq(0,10800,900),mrna=kds)
+  
+  fp <- pchipfun(df[,1], df[,2]) 
+  f <- fp(seq(0, 10800, by = 1))
+  inputkd <- f
+  df <- data.frame(time=seq(0,10800,1),mrna=f)
+  signal <- data.frame(time = df[,1],nfkb = df[,2])
+  sigimp <- approxfun(signal$t, signal$nfkb, rule = 2)
+  inputkd <- sigimp
+  
+  normwt <- data.frame(x=seq(0,10800,1),y=wtModels(k1,k2,KD1,KD2,kdeg,tau)[,2])
+  minnorm <- normwt[1,2]
+  for(i in 1:dim(normwt)[1]){
+    normwt[i,2] <- normwt[i,2]/minnorm
+  }
+  
+  normkd <- data.frame(x=seq(0,10800,1),y=kdModels(k1,k2,KD1,KD2,kdeg,tau)[,2])
+  minnorm <- normkd[1,2]
+  for(i in 1:dim(normkd)[1]){
+    normkd[i,2] <- normkd[i,2]/minnorm
+  }
+  
+  
+  normdf <- rbind(normwt,normkd)
+  normdf <- as.data.frame(normdf)
+  
+  normdf <- rescale(normdf[,2], to=c(0,1))
+  norm <- c()
+  norm <- data.frame(x=rep(seq(0,10800,1),2),y=normdf)
+  
+  alloutswt <- norm[1:10801,]   
+  alloutskd <- norm[10802:21602,]
+  
+  
+  
+  allout <- rbind(alloutswt,alloutskd)
+  allout <- as.data.frame(allout)
+  
+  outfinal2 <- allout[which(allout[,1] %in% seq(0,10800,by=900)),]
+  outfinal2 <- outfinal2[,2]
+  outfinal2 <- as.data.frame(outfinal2)
+  outfinal2 <- t(outfinal2)
+  outfinal2 <- as.data.frame(outfinal2)
+  
+  refall <- c(refall, c(outfinal2))
+}
+
+refall2 <- data.frame(matrix(unlist(refall),ncol=26,byrow=T))
+
+refall3 <- refall2[,1:13] 
+refall3 <- refall2[,14:26]
+
+refall3 <- t(refall3)
+refall3 <- as.data.frame(refall3)
+colnames(refall3) <- names
+
+p <- colnames(refall3)
+t <- colnames(refall3)
+refall3$t <- seq(0,180,15)
+temp <- reshape2::melt(refall3,
+                       id="t",
+                       measure=p 
+)
+temp$variable <- as.character(temp$variable)
+temp$value <- as.numeric(temp$value)
+
+g <- ggplot(temp,aes(as.factor(t),as.factor(variable)))+
+  geom_tile(aes(fill=value),color="grey50",stat="identity")+
+  scale_fill_gradient(low="white",high="red",limits=c(0,1.0))+
+  #scale_fill_gradient(low="white",high="mediumseagreen",limits=c(0,1.0))+
+  labs(x = "",y = "") + 
+  theme(panel.grid = element_blank())+
+  scale_x_discrete(labels=c("0","15","30","45","60","75","90","105","120","135","150","165","180"),breaks=c("0","15","30","45","60","75","90","105","120","135","150","165","180"),expand = c(0, 0))+ 
+  scale_y_discrete(breaks=sort(names,decreasing = T),labels=waiver(),limits=sort(names,decreasing = T),expand = c(0, 0))+
+  theme(legend.position = "bottom",axis.ticks = element_blank(), axis.text.x = element_text(size = 7, angle = 0, hjust = 0.5, colour = "black"),axis.text.y = element_text(size = 6.0, angle = 0, hjust = 1.0, colour = "black"));g
+
+#Draw a heatmap of nRMSD
+names <- read.table("../Data/ERGsubcluster2_Promoter_up500down500TSS_12012019.txt", sep = "\t",header=FALSE)
+names <- names[-which(names[,1]=="NFKBIA"),]
+names <- read.table("../Data/IRGsubcluster2_Promoter_up500down500TSS_12012019.txt", sep = "\t",header=FALSE)
+names[,1] <- as.character(names[,1])    
+names[which(names[,1]=="NKX3_1"),1] <- c("NKX3-1")
+names <- read.table("../Data/DRGsubcluster2_Promoter_up500down500TSS_12012019.txt", sep = "\t",header=FALSE)
+names <- names[,1]
+names <- sort(names)
+
+
+df <- data.frame(name=names,group=rep("black",length(names)))
+df$name <- as.character(df$name)
+df$group <- as.character(df$group)
+#df[which(df$name=="KLF10"),2]="yellow"
+#df[which(df$name=="MAP3K8"),2]="yellow"
+#df[which(df$name=="PHLDA1"),2]="yellow"
+#df[which(df$name=="SPRY4"),2]="yellow"
+#df[which(df$name=="SPSB1"),2]="yellow"
+#df[which(df$name=="TNFAIP3"),2]="yellow"
+#df[which(df$name=="ZC3H12A"),2]="yellow"
+df[which(df$name=="ADGRG6"),2]="yellow"
+df[which(df$name=="AMIGO2"),2]="yellow"
+df[which(df$name=="ANKRD18B"),2]="yellow"
+df[which(df$name=="ANXA8"),2]="yellow"
+df[which(df$name=="ATP1B1"),2]="yellow"
+df[which(df$name=="BCL2L11"),2]="yellow"
+df[which(df$name=="BCL3"),2]="yellow"
+df[which(df$name=="BID"),2]="yellow"
+df[which(df$name=="BIRC3"),2]="yellow"
+df[which(df$name=="CDKN2B"),2]="yellow"
+df[which(df$name=="CLIC4"),2]="yellow"
+df[which(df$name=="EIF5"),2]="yellow"
+df[which(df$name=="LYPD6B"),2]="yellow"
+df[which(df$name=="MAFF"),2]="yellow"
+df[which(df$name=="NCOA7"),2]="yellow"
+df[which(df$name=="NEDD9"),2]="yellow"
+df[which(df$name=="NFKBIE"),2]="yellow"
+df[which(df$name=="RBM3"),2]="yellow"
+df[which(df$name=="RHOV"),2]="yellow"
+df[which(df$name=="S100A9"),2]="yellow"
+df[which(df$name=="SDC4"),2]="yellow"
+df[which(df$name=="SDCBP"),2]="yellow"
+df[which(df$name=="TICAM1"),2]="yellow"
+df[which(df$name=="TNFRSF11B"),2]="yellow"
+
+except_genes <- c("HMGCR","IER5L","IL6ST","LINC00052","SLC6A14")
+df[-which(df$name %in% except_genes),2]="yellow"
+df$x <- rep("all",dim(df)[1])
+
+g <- ggplot(df,aes(as.factor(x),as.factor(name)))+
+  geom_tile(aes(fill=group),color="grey50",stat="identity",na.rm = TRUE)+
+  scale_fill_manual(values=c(black="grey85", yellow="yellow"))+
+  labs(x = "",y = "") + 
+  theme(panel.grid = element_blank())+#
+  scale_x_discrete(labels=waiver(),breaks=group,expand = c(0, 0))+ 
+  scale_y_discrete(breaks=sort(df$name,decreasing=T),labels=waiver(),limits=sort(df$name,decreasing=T),expand = c(0, 0))+
+  theme(legend.position = "right",axis.ticks = element_blank(), axis.text.x = element_text(size = 12, angle = 0, hjust = 0.5, colour = "black"),axis.text.y = element_text(size = 12, angle = 0, hjust = 0.5, colour = "black"));g
+
+#Draw lineplots of example gene
+smallest <- read.table("../Data/Cycle_ERGsmallest.txt", sep = "\t",skip=1)
+smallest <- read.table("../Data/Cycle_IRGsmallest.txt", sep = "\t",skip=1)
+smallest <- read.table("../Data/Cycle_DRGsmallest.txt", sep = "\t",skip=1)
+names <- smallest[,1]
+smallest <- smallest[,2:3]
+
+d <- names[r]
+
+#stackkari <- c()
+#stack <- c()
+#dfde <- c()
+#file <- paste("../Optimized_parameters/Cycle_model/ERGsubcluster2/rep1/2_Cycle_",d,"_rep1",".txt",sep="")
+#datafile <- read.table(file,sep="\t",skip=1) 
+#datafile <- as.data.frame(datafile)
+#dfde <- datafile[,2:8]
+#dfde <- as.data.frame(dfde)
+#colnames(dfde) <- c("RMSD","k1","k2","KD1","KD2","kdeg","tau")
+#rep1dfde <- dfde
+#
+#k1 <- dfde[smallest[r,1],2]
+#k2 <- dfde[smallest[r,1],3]
+#KD1 <- dfde[smallest[r,1],4]
+#KD2 <- dfde[smallest[r,1],5]
+#kdeg <- dfde[smallest[r,1],6]
+#tau <- dfde[smallest[r,1],7]
+#rmsd <- dfde[smallest[r,1],1]
+
+stackkari <- c()
+stack <- c()
+dfde <- c()
+file <- paste("../Optimized_parameters/Cycle_model/ERGsubcluster2/rep2/2_Cycle_",d,"_rep2",".txt",sep="")
+datafile <- read.table(file,sep="\t",skip=1) 
+datafile <- as.data.frame(datafile)
+dfde <- datafile[,2:8]
+dfde <- as.data.frame(dfde)
+colnames(dfde) <- c("RMSD","k1","k2","KD1","KD2","kdeg","tau")
+rep2dfde <- dfde
+
+k1 <- dfde[smallest[r,2],2]
+k2 <- dfde[smallest[r,2],3]
+KD1 <- dfde[smallest[r,2],4]
+KD2 <- dfde[smallest[r,2],5]
+kdeg <- dfde[smallest[r,2],6]
+tau <- dfde[smallest[r,2],7]
+rmsd <- dfde[smallest[r,2],1]
+
+#count <- read.csv("../Data/160712_ikbakd.csv")
+#count1=count[,2:12]
+#count1 <- data.frame(count1)
+#mean <- count1[,2]
+#condition <- count1[,1]
+#time <- count1[,11]
+#df <- data.frame(Time=time,Mean=mean,Con=condition)
+#df1 <- df[1:13,]
+##df2 <- df[26:38,]
+#x <- df1[,1]                                         
+#y <- df1[,2] 
+#signal <- data.frame(time = x,nfkb = y)
+#wtsignal <- signal
+#wtsignal$group <- rep("wt",dim(wtsignal)[1])
+#
+#df2 <- df[26:38,]
+#x <- df2[,1]
+#y <- df2[,2] 
+#signal <- data.frame(time = x,nfkb = y)
+#kdsignal <- signal
+#kdsignal$group <- rep("kd",dim(wtsignal)[1]) 
+#
+#
+#wtb <- wtsignal[1,2]
+#for(i in 1:13){
+#  wtsignal[i,2] <- wtsignal[i,2]/wtb
+#}
+#
+#kdb <- kdsignal[1,2]
+#for(i in 1:13){
+#  kdsignal[i,2] <- kdsignal[i,2]/kdb
+#}
+#
+#
+#bothsignal <- rbind(wtsignal,kdsignal)
+#bothsignal <- as.data.frame(bothsignal)
+#
+#df <- rescale(bothsignal[,2], to=c(2,100))
+#df <- data.frame(time=rep(seq(0,10800,900),2),mrna=df)
+#df <- df[1:13,]                                         
+#
+#fp <- pchipfun(df[,1], df[,2]) 
+#f <- fp(seq(0, 10800, by = 1))
+#inputwt <- f
+#df <- data.frame(time=seq(0,10800,1),mrna=f)
+#signal <- data.frame(time = df[,1],nfkb = df[,2])
+#sigimp <- approxfun(signal$t, signal$nfkb, rule = 2)
+#inputwt <- sigimp
+#nfkb_wt <- signal
+#colnames(nfkb_wt) <- c("Time","Value")
+#
+#times <- seq(-3600,0,1)
+#df <- rep(nfkb_wt[1,2],length(times))
+#fp <- pchipfun(times, df) 
+#sigimp <- approxfun(times, df, rule = 2)
+#steadywt <- sigimp
+#
+#bothsignal <- rbind(wtsignal,kdsignal)
+#bothsignal <- as.data.frame(bothsignal)
+#
+#df <- rescale(bothsignal[,2], to=c(2,100))
+#df <- data.frame(time=rep(seq(0,10800,900),2),mrna=df)
+#df <- df[14:26,]                                         
+#
+#fp <- pchipfun(df[,1], df[,2]) 
+#f <- fp(seq(0, 10800, by = 1))
+#inputkd <- f
+#df <- data.frame(time=seq(0,10800,1),mrna=f)
+#signal <- data.frame(time = df[,1],nfkb = df[,2])
+#sigimp <- approxfun(signal$t, signal$nfkb, rule = 2)
+#inputkd <- sigimp
+#nfkb_kd <- signal
+#colnames(nfkb_kd) <- c("Time","Value")
+#
+#
+#times <- seq(-3600,0,1)
+#df <- rep(nfkb_kd[1,2],length(times))
+#fp <- pchipfun(times, df) 
+#sigimp <- approxfun(times, df, rule = 2)
+#steadykd <- sigimp
+
+
+
+count <- read.csv("../Data/160617_ikbakd.csv")
+count1=count[,2:12]
+count1 <- data.frame(count1)
+mean <- count1[,2]
+condition <- count1[,1]
+time <- count1[,11]
+df <- data.frame(Time=time,Mean=mean,Con=condition)
+df1 <- df[1:13,]
+#df2 <- df[26:38,]
+x <- df1[,1]                                         
+y <- df1[,2] 
+signal <- data.frame(time = x,nfkb = y)
+wtsignal <- signal
+wtsignal$group <- rep("wt",dim(wtsignal)[1])
+
+df2 <- df[26:38,]
+x <- df2[,1]
+y <- df2[,2] 
+signal <- data.frame(time = x,nfkb = y)
+kdsignal <- signal
+kdsignal$group <- rep("kd",dim(wtsignal)[1]) 
+
+
+wtb <- wtsignal[1,2]
+for(i in 1:13){
+  wtsignal[i,2] <- wtsignal[i,2]/wtb
+}
+
+kdb <- kdsignal[1,2]
+for(i in 1:13){
+  kdsignal[i,2] <- kdsignal[i,2]/kdb
+}
+
+df <- rescale(wtsignal[1:4,2], to=c(2,100))
+unit <- (wtsignal[4,2]-wtsignal[1,2])/(df[4]-df[1])
+wts <- c()
+for(i in 5:13){
+  kari <- wtsignal[i,2]-wtsignal[1,2]
+  final <- kari/unit+2
+  wts[i] <- final
+}
+wts <- na.omit(wts)
+wts <- c(df,wts)
+
+kds <- c()
+for(i in 1:dim(kdsignal)[1]){
+  kari <- kdsignal[i,2]-wtsignal[1,2]
+  final <- kari/unit+2
+  kds[i] <- final
+}
+
+df <- data.frame(time=seq(0,10800,900),mrna=wts)
+
+fp <- pchipfun(df[,1], df[,2]) 
+f <- fp(seq(0, 10800, by = 1))
+inputwt <- f
+df <- data.frame(time=seq(0,10800,1),mrna=f)
+signal <- data.frame(time = df[,1],nfkb = df[,2])
+sigimp <- approxfun(signal$t, signal$nfkb, rule = 2)
+inputwt <- sigimp
+nfkb_wt <- signal
+colnames(nfkb_wt) <- c("Time","Value")
+
+times <- seq(-3600,0,1)
+df <- rep(nfkb_wt[1,2],length(times))
+fp <- pchipfun(times, df) 
+sigimp <- approxfun(times, df, rule = 2)
+steadywt <- sigimp
+
+df <- data.frame(time=seq(0,10800,900),mrna=kds)
+
+fp <- pchipfun(df[,1], df[,2]) 
+f <- fp(seq(0, 10800, by = 1))
+inputkd <- f
+df <- data.frame(time=seq(0,10800,1),mrna=f)
+signal <- data.frame(time = df[,1],nfkb = df[,2])
+sigimp <- approxfun(signal$t, signal$nfkb, rule = 2)
+inputkd <- sigimp
+nfkb_kd <- signal
+colnames(nfkb_kd) <- c("Time","Value")
+
+times <- seq(-3600,0,1)
+df <- rep(nfkb_kd[1,2],length(times))
+fp <- pchipfun(times, df) 
+sigimp <- approxfun(times, df, rule = 2)
+steadykd <- sigimp
+
+normwt <- data.frame(x=seq(0,10800,1),y=wtModels(k1,k2,KD1,KD2,kdeg,tau)[,2])
+minnorm <- normwt[1,2]
+for(i in 1:dim(normwt)[1]){
+  normwt[i,2] <- normwt[i,2]/minnorm
+}
+
+normkd <- data.frame(x=seq(0,10800,1),y=kdModels(k1,k2,KD1,KD2,kdeg,tau)[,2])
+minnorm <- normkd[1,2]
+for(i in 1:dim(normkd)[1]){
+  normkd[i,2] <- normkd[i,2]/minnorm
+}
+
+
+normdf <- rbind(normwt,normkd)
+normdf <- as.data.frame(normdf)
+
+normdf <- rescale(normdf[,2], to=c(0,1))
+norm <- c()
+norm <- data.frame(x=rep(seq(0,10800,1),2),y=normdf)
+
+
+ref <- wt2[which(rownames(wt2)==d),]
+
+data <- ref
+zero <- data[1,1]
+for(i in 1:13){
+  data[1,i] <- data[1,i]/zero
+}
+
+refwtfc <- data.frame(x=seq(0,180,15),y=as.numeric(data[1,]))
+
+
+ref <- kd2[which(rownames(kd2)==d),]
+
+data <- ref
+zero <- data[1,1]
+for(i in 1:13){
+  data[1,i] <- data[1,i]/zero
+}
+refkdfc <- data.frame(x=seq(0,180,15),y=as.numeric(data[1,]))
+
+df <- rbind(refwtfc,refkdfc)
+df <- as.data.frame(df)
+
+df <- rescale(df[,2], to=c(0,1))
+refwtfc <- data.frame(x=seq(0,180,15),y=df[1:13])
+refkdfc <- data.frame(x=seq(0,180,15),y=df[14:26])
+
+refwt <- refwtfc[,2]
+refkd <- refkdfc[,2]
+
+sim <- norm[which(norm[,1] %in% seq(0,10800,900)),]
+simwt <- sim[1:13,2]
+simkd <- sim[14:26,2]
+
+alloutswt <- norm[1:10801,]   #siCtrl
+alloutskd <- norm[10802:21602,]   #siIkBa
+
+alloutswt$condition <- rep("wt",dim(alloutswt)[1])
+alloutskd$condition <- rep("kd",dim(alloutskd)[1])
+alloutswt$line <- rep("solid",dim(alloutswt)[1])
+alloutskd$line <- rep("solid",dim(alloutskd)[1])
+refwt <- data.frame(time=seq(0,10800,900),mrna=refwt)
+refkd <- data.frame(time=seq(0,10800,900),mrna=refkd)
+refwt$condition <- rep("wt",dim(refwt)[1])
+refkd$condition <- rep("kd",dim(refkd)[1])
+refwt$line <- rep("dashed",dim(refwt)[1])
+refkd$line <- rep("dashed",dim(refkd)[1])
+
+colnames(alloutswt) <- c("time","mrna","condition","line")
+colnames(alloutskd) <- c("time","mrna","condition","line")
+
+
+df <- rbind(alloutswt,alloutskd,refwt,refkd)
+df <- as.data.frame(df)
+
+g <- ggplot(df,aes(x=time,y=mrna,color=condition,linetype=line,alpha=line))+
+  theme_bw(base_size = 16)+
+  theme(panel.grid = element_blank())+
+  labs(x="",y="",title=c(""),colour="")+
+  scale_colour_manual(values = c(wt="red",kd="green4"))+
+  scale_x_continuous(breaks=seq(0,10800,1800),labels=seq(0,180,30))+
+  scale_y_continuous(breaks=c(0.0,0.2,0.4,0.6,0.8,1.0),labels=waiver(),limits=c(0.0,1.0))+
+  scale_linetype_manual(values=c(solid="solid", dashed="dotted"))+
+  scale_alpha_manual(values=c(solid=0.7, dashed=1.0))+
+  theme(panel.border=element_rect(fill=NA,color="black", size=0.6),plot.title = element_text(hjust = 0.5,size=15.0,margin=margin(t = 0, r = 0, b = 0.1, l = 0)),panel.grid.major.x = element_line(colour="grey90", size =0.001),panel.grid.major.y = element_line(colour="grey90", size =0.001),legend.position = "none",title = element_text(size=7),legend.text = element_text(size=7),axis.text.x = element_text(size=10),axis.text.y = element_text(size=10))+
+  geom_line(lwd=2.0,aes(color=condition));g
+
+
+
