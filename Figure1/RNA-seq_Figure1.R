@@ -82,7 +82,7 @@ drg <- wt2[which(rownames(wt2) %in% a4),]
 
 d <- kd2[-which(rownames(kd2) %in% wtdeg),]
 d <- genescale(d,axis=1,method="Z")
-set.seed(11)
+set.seed(1)
 f1 <- cmeans(d,3,2,verbose=FALSE,m=1.3,dist="euclidean",method="cmeans")
 q1 <- as.data.frame(f1[3])
 b1 <- rownames(q1)[which(f1$cluster=="1")]
