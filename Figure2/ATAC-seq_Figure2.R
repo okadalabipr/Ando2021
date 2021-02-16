@@ -71,6 +71,7 @@ rownames(siCtrl) <- seq(1,dim(siCtrl)[1],1)
 data <- siCtrl[,4:7]
 data <- na.omit(data)
 data <- data[which(rownames(data) %in% rowname),]
+data <- genescale(data,axis=1,method="Z")
 cluster1 <- c()
 cluster2 <- c()
 cluster3 <- c()
