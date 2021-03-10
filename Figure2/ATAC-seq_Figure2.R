@@ -409,7 +409,7 @@ g <- ggplot(df,
                 fill=group))+ 
   theme_bw(base_size = 16)+
   theme(panel.grid = element_blank())+
-  scale_fill_manual(values = c(siCtrl="#DC143C",siIkBa="mediumseagreen"))+
+  scale_fill_manual(values = c(siCtrl="magenta",siIkBa="mediumseagreen"))+
   scale_x_discrete(breaks=c("0","30","75","120"),labels=c("0","30","75","120"),limits=c("0","30","75","120"),expand=c(0.2,0.2))+
   scale_y_continuous(breaks=seq(-3,6,by=1),limits=c(-3,6),labels=waiver())+
   labs(x="Time (min)",y="ATAC-seq signal",title="",colour="")+
