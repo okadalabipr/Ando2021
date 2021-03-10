@@ -108,10 +108,13 @@ q1 <- as.data.frame(f1[3])
 w1 <- rownames(q1)[which(f1$cluster=="1")]
 w2 <- rownames(q1)[which(f1$cluster=="2")]
 
-write.table(w1,"Subcluster1_ERGs.txt",col.names=T,sep="\t")
-write.table(w2,"Subcluster2_ERGs.txt",col.names=T,sep="\t")
-w1 <- read.table("Subcluster1_ERGs.txt",sep="\t",stringsAsFactors = FALSE)
-w2 <- read.table("Subcluster2_ERGs.txt",sep="\t",stringsAsFactors = FALSE)
+w1 <- read.table("siIkBa_Upregulated.txt",sep="\t",stringsAsFactors = FALSE)
+#w1 <- read.table("Subcluster1_ERGs.txt",sep="\t",stringsAsFactors = FALSE)
+#w2 <- read.table("Subcluster2_ERGs.txt",sep="\t",stringsAsFactors = FALSE)
+#w1 <- read.table("Subcluster1_IRGs.txt",sep="\t",stringsAsFactors = FALSE)
+#w2 <- read.table("Subcluster2_IRGs.txt",sep="\t",stringsAsFactors = FALSE)
+#w1 <- read.table("Subcluster1_DRGs.txt",sep="\t",stringsAsFactors = FALSE)
+#w2 <- read.table("Subcluster2_DRGs.txt",sep="\t",stringsAsFactors = FALSE)
 w1 <- w1[,1]
 w2 <- w2[,1]
 
@@ -206,7 +209,8 @@ g <- ggplot(df,aes(x=variable,y=value,group=group))+
   labs(x="",y="",title="",colour="")+
   scale_x_discrete(breaks=c("0","15","30","45","60","75","90","105","120","135","150","165","180"),labels=c("0","","","","","","90","","","","","","180"),limits=c("0","15","30","45","60","75","90","105","120","135","150","165","180"))+
   scale_y_continuous(breaks=seq(0.5,3.5,by=0.5),limits=c(0.5,3.5))+
+  #scale_y_continuous(breaks=seq(0.9,1.5,by=0.2),limits=c(0.9,1.5))+  
   geom_line(lwd=3.0,aes(color=group))+
-  scale_colour_manual(values = c(siCtrl="#DC143C",siIkBa="seagreen"))+
+  scale_colour_manual(values = c(siCtrl="magenta",siIkBa="seagreen"))+
   theme_bw()+
   theme(plot.title = element_text(hjust = 0.5,size=20,face="italic"),panel.background=element_rect(color="black", size=2, fill="white" ),panel.grid.minor.y = element_blank(),panel.grid.major.x = element_line(colour="grey", size =1.0),panel.grid.major.y = element_blank(),panel.grid.minor.x = element_blank(),legend.position = "none",axis.title.x = element_text(size=15,margin=margin(t = 25, r = 0, b = 0, l = 0)),axis.title.y = element_text(size=16,margin=margin(t = 0, r = 25, b = 0, l = 0)),axis.text.x = element_text(size=15),axis.text.y = element_text(size=15));g
