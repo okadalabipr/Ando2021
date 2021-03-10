@@ -88,7 +88,7 @@ library(ggplot2)
       theme_bw(base_size = 16)+
       theme(panel.grid = element_blank())+
       labs(x="",y="",title="",colour="")+
-      #geom_line(lwd=2.2,color="#DC143C")+
+      #geom_line(lwd=2.2,color="magenta")+
       geom_line(lwd=2.2,color="seagreen")+
       scale_x_continuous(breaks=seq(0,180,15),labels=waiver(),limits=c(0,180))+
       scale_y_continuous(breaks=seq(0.25,0.5,0.05),labels=waiver(),limits=c(0.25,0.5))+
