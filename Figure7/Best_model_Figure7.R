@@ -1216,7 +1216,7 @@ for(r in 1:length(names)[1]){
   rmsd <- dfde[smallest[r,2],1]
   
   count <- read.csv("../Data/160617_ikbakd.csv")
-  count1=count[,2:12]#6�`11��ڂ𒊏o
+  count1=count[,2:12]#6`11ñÚðo
   count1 <- data.frame(count1)
   mean <- count1[,2]
   condition <- count1[,1]
@@ -2288,7 +2288,7 @@ temp$value <- as.numeric(temp$value)
 
 g <- ggplot(temp,aes(as.factor(t),as.factor(variable)))+
   geom_tile(aes(fill=value),color="grey50",stat="identity")+
-  scale_fill_gradient(low="white",high="red",limits=c(0,1.0))+
+  scale_fill_gradient(low="white",high="magenta",limits=c(0,1.0))+
   #scale_fill_gradient(low="white",high="mediumseagreen",limits=c(0,1.0))+
   labs(x = "",y = "") + 
   theme(panel.grid = element_blank())+
@@ -2358,7 +2358,7 @@ df <- ERG_df
 
 g <- ggplot(df,aes(as.factor(x),as.factor(name)))+
   geom_tile(aes(fill=group),color="grey50",stat="identity",na.rm = TRUE)+
-  scale_fill_manual(values=c(grey85="grey85", deepskyblue2="deepskyblue2",red3="firebrick2",yellowgreen="yellowgreen",mediumpurple1="mediumpurple1"))+
+  scale_fill_manual(values=c(grey85="grey85", deepskyblue2="deepskyblue2",red3="orchid1",yellowgreen="yellowgreen",mediumpurple1="mediumpurple1"))+
   labs(x = "",y = "") + 
   theme(panel.grid = element_blank())+
   scale_x_discrete(labels=waiver(),breaks=group,expand = c(0, 0))+ 
@@ -2379,7 +2379,7 @@ colnames(df) <- c("value")
 
 g <- ggplot(df, aes(x = rownames(df), y = value, fill=rownames(df)))+
   geom_bar(stat="identity", color="black",width=0.4, size=0.7)+
-  scale_fill_manual(values = c(simple="#66CCFF",IFFL="firebrick1",cycle="olivedrab2",combination="#9966FF"))+
+  scale_fill_manual(values = c(simple="#66CCFF",IFFL="plum1",cycle="olivedrab2",combination="#9966FF"))+
   labs(x = "",y = "") + 
   theme_bw(base_size = 16)+
   theme(panel.grid = element_blank())+
