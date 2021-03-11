@@ -78,7 +78,8 @@ temp$value <- as.numeric(temp$value)
 
 g <- ggplot(temp,aes(as.factor(t),as.factor(variable)))+
   geom_tile(aes(fill=value),color="grey40", stat="identity")+
-  scale_fill_gradient(low="white",high="mediumseagreen",limits=c(0,1.0))+
+  scale_fill_gradient(low="white",high="magenta",limits=c(0,1.0))+
+  #scale_fill_gradient(low="white",high="mediumseagreen",limits=c(0,1.0))+
   labs(x = "",y = "") + 
   theme(panel.grid = element_blank())+
   scale_x_discrete(labels=c("0","15","30","45","60","75","90","105","120","135","150","165","180"),breaks=c("0","15","30","45","60","75","90","105","120","135","150","165","180"),expand = c(0, 0))+ 
@@ -1018,7 +1019,7 @@ temp$value <- as.numeric(temp$value)
 
 g <- ggplot(temp,aes(as.factor(t),as.factor(variable)))+
   geom_tile(aes(fill=value),color="grey50",stat="identity")+
-  scale_fill_gradient(low="white",high="red",limits=c(0,1.0))+
+  scale_fill_gradient(low="white",high="magenta",limits=c(0,1.0))+
   #scale_fill_gradient(low="white",high="mediumseagreen",limits=c(0,1.0))+
   labs(x = "",y = "")+ 
   theme(panel.grid = element_blank())+
@@ -1212,7 +1213,7 @@ steadykd <- sigimp
 
 
 
-#count <- read.csv("../Data/160617_ikbakd.csv")#ƒtƒ@ƒCƒ‹“Ç‚Ýž‚Ý(ƒf[ƒ^ƒtƒŒ[ƒ€Œ`Ž®)
+#count <- read.csv("../Data/160617_ikbakd.csv")#ãƒ•ã‚¡ã‚¤ãƒ«èª­ã¿è¾¼ã¿(ãƒ‡ãƒ¼ã‚¿ãƒ•ãƒ¬ãƒ¼ãƒ å½¢å¼)
 #count1=count[,2:12]
 #count1 <- data.frame(count1)
 #mean <- count1[,2]
@@ -1383,7 +1384,7 @@ g <- ggplot(df,aes(x=time,y=mrna,color=condition,linetype=line,alpha=line))+
   theme_bw(base_size = 16)+
   theme(panel.grid = element_blank())+
   labs(x="",y="",title=c(""),colour="")+
-  scale_colour_manual(values = c(wt="red",kd="green4"))+
+  scale_colour_manual(values = c(wt="magenta",kd="green4"))+
   scale_x_continuous(breaks=seq(0,10800,1800),labels=seq(0,180,30))+
   scale_y_continuous(breaks=c(0.0,0.2,0.4,0.6,0.8,1.0),labels=waiver(),limits=c(0.0,1.0))+
   scale_linetype_manual(values=c(solid="solid", dashed="dotted"))+
