@@ -85,18 +85,6 @@ Others <- read.table("../Data/Otherscluster_12022019.txt",sep="\t",header= T)
 Others <- Others[,2]
 Others <- as.character(Others)
 
-Upregulated <- read.table("../Data/siIkBa_Upregulated.txt",sep="\t",header= T)
-Upregulated <- Upregulated[,1]
-Upregulated <- as.character(Upregulated)
-
-Downregulated <- read.table("../Data/siIkBa_Downregulated.txt",sep="\t",header= T)
-Downregulated <- Downregulated[,1]
-Downregulated <- as.character(Downregulated)
-
-Others <- read.table("../Data/siIkBa_Others.txt",sep="\t",header= T)
-Others <- Others[,1]
-Others <- as.character(Others)
-
 wt2 <- wt[which(rownames(wt) %in% DRG),]
 data <- wt2
 for(k in 1:dim(wt2)[2]){
