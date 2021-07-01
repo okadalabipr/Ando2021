@@ -1,4 +1,8 @@
+library(exactRankTests)
 library(ggplot2)
+library(openxlsx)
+library(pracma)
+library(scales)
 
     count <- read.csv("../Data/160712_ikbakd.csv")
     count1=count[,2:12]
