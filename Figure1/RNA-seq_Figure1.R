@@ -1,8 +1,9 @@
 library(DESeq2)
 library(edgeR)
-library(VennDiagram)
-library(genefilter)
 library(e1071)
+library(exactRankTests)
+library(genefilter)
+library(VennDiagram)
 
 #Venn diagram of DEGs in WT and siIkBa
 grid.newpage()
