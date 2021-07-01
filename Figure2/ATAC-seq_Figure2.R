@@ -224,7 +224,129 @@ g <- ggplot(temp,aes(as.factor(variable),as.factor(t)))+
   scale_x_discrete(labels=c("0min","30min","75min","120min"),breaks=c("0min","30min","75min","120min"),limits=c("0min","30min","75min","120min"),expand = c(0, 0))+ 
   theme(legend.position = "right",axis.ticks = element_blank(), axis.text.x = element_text(size = 12, angle = 0, hjust = 0.5, colour = "black"),axis.text.y = element_blank());g
 
-#Draw a heatmap of aggregated chromatin accessibility at each kB site enriched TNF-induced region
+#Draw line plots of aggregated chromatin accessibility at each kB site enriched TNF-induced region
+one <- read.table("Filtered_16clusters_cluster7_DifferentialPeaks_siCtrl_before_and_after_mergedpeaks.txt", sep = "\t")
+two <- read.table("Filtered_16clusters_cluster16_DifferentialPeaks_siCtrl_before_and_after_mergedpeaks.txt", sep = "\t")
+three <- read.table("Filtered_16clusters_cluster14_DifferentialPeaks_siCtrl_before_and_after_mergedpeaks.txt", sep = "\t")
+four <- read.table("Filtered_16clusters_cluster9_DifferentialPeaks_siCtrl_before_and_after_mergedpeaks.txt", sep = "\t")
+five <- read.table("Filtered_16clusters_cluster6_DifferentialPeaks_siCtrl_before_and_after_mergedpeaks.txt", sep = "\t")
+
+one2 <- read.table("204regions_regions.txt", sep = "\t")
+two2 <- read.table("453regions_regions.txt", sep = "\t")
+three2 <- read.table("348regions_regions.txt", sep = "\t")
+four2 <- read.table("478regions_regions.txt", sep = "\t")
+five2 <- read.table("119regions_regions.txt", sep = "\t")
+
+one_other <- one[-which(one[,3] %in% one2[,3]),]
+two_other <- two[-which(two[,3] %in% two2[,3]),]
+three_other <- three[-which(three[,3] %in% three2[,3]),]
+four_other <- four[-which(four[,3] %in% four2[,3]),]
+five_other <- five[-which(five[,3] %in% five2[,3]),]
+
+siCtrl <- read.table("TMM_RPM_DifferentialPeaks_siCtrl_before_and_after_mergedpeaks.txt",sep="\t",stringsAsFactors = FALSE)
+siCtrl <- siCtrl[order(siCtrl[,2]),]
+rownames(siCtrl) <- seq(1,dim(siCtrl)[1],1)
+siCtrl[,2] <- siCtrl[,2]+1
+siCtrl_one2 <- siCtrl[which(siCtrl[,2] %in% one2[,3]),4:7]
+siCtrl_two2 <- siCtrl[which(siCtrl[,2] %in% two2[,3]),4:7]
+siCtrl_three2 <- siCtrl[which(siCtrl[,2] %in% three2[,3]),4:7]
+siCtrl_four2 <- siCtrl[which(siCtrl[,2] %in% four2[,3]),4:7]
+siCtrl_five2 <- siCtrl[which(siCtrl[,2] %in% five2[,3]),4:7]
+
+siCtrl <- read.table("TMM_RPM_DifferentialPeaks_siCtrl_before_and_after_mergedpeaks.txt",sep="\t",stringsAsFactors = FALSE)
+siCtrl <- siCtrl[order(siCtrl[,2]),]
+rownames(siCtrl) <- seq(1,dim(siCtrl)[1],1)
+siCtrl[,2] <- siCtrl[,2]+1
+siCtrl_one_other <- siCtrl[which(siCtrl[,2] %in% one_other[,3]),4:7]
+siCtrl_two_other <- siCtrl[which(siCtrl[,2] %in% two_other[,3]),4:7]
+siCtrl_three_other <- siCtrl[which(siCtrl[,2] %in% three_other[,3]),4:7]
+siCtrl_four_other <- siCtrl[which(siCtrl[,2] %in% four_other[,3]),4:7]
+siCtrl_five_other <- siCtrl[which(siCtrl[,2] %in% five_other[,3]),4:7]
+
+#dfsiCtrl <- siCtrl_one2
+#dfsiCtrl <- siCtrl_two2
+#dfsiCtrl <- siCtrl_three2
+#dfsiCtrl <- siCtrl_four2
+#dfsiCtrl <- siCtrl_five2
+
+dfsiCtrl <- as.data.frame(dfsiCtrl)
+rownames(dfsiCtrl) <- seq(1,dim(dfsiCtrl)[1],1)
+colnames(dfsiCtrl) <-  c("0","30","75","120")
+dfsiCtrl <- genescale(dfsiCtrl,axis=1,method="Z")
+dfsiCtrl <- as.data.frame(dfsiCtrl)
+dfsiCtrl <- dfsiCtrl[,1:4]
+dfsiCtrl <- as.data.frame(dfsiCtrl)
+
+p <- colnames(dfsiCtrl)
+t <- colnames(dfsiCtrl)
+data2 <- dfsiCtrl
+data2$t <- seq(1,dim(data2)[1],1)
+temp <- reshape2::melt(data2,
+             id="t",
+             measure=p 
+)
+
+temp$variable <- as.character(temp$variable)
+temp$value <- as.numeric(temp$value)
+temp$t <- as.character(temp$t)
+temp$color <- rep("kB",dim(temp)[1])
+temp2 <- temp
+
+#dfsiCtrl <- siCtrl_one_other
+#dfsiCtrl <- siCtrl_two_other
+#dfsiCtrl <- siCtrl_three_other
+#dfsiCtrl <- siCtrl_four_other
+#dfsiCtrl <- siCtrl_five_other
+
+dfsiCtrl <- as.data.frame(dfsiCtrl)
+rownames(dfsiCtrl) <- seq(1,dim(dfsiCtrl)[1],1)
+colnames(dfsiCtrl) <-  c("0","30","75","120")
+dfsiCtrl <- genescale(dfsiCtrl,axis=1,method="Z")
+dfsiCtrl <- as.data.frame(dfsiCtrl)
+dfsiCtrl <- dfsiCtrl[,1:4]
+dfsiCtrl <- as.data.frame(dfsiCtrl)
+
+p <- colnames(dfsiCtrl)
+t <- colnames(dfsiCtrl)
+data2 <- dfsiCtrl
+data2$t <- seq((max(as.numeric(temp2$t))+1),(dim(data2)[1]+max(as.numeric(temp2$t))),1)
+temp <- reshape2::melt(data2,
+             id="t",
+             measure=p 
+)
+temp$variable <- as.character(temp$variable)
+temp$value <- as.numeric(temp$value)
+temp$t <- as.character(temp$t)
+temp$color <- rep("other",dim(temp)[1])
+temp_other <- temp
+
+temp2$variable <- as.numeric(temp2$variable)
+temp_other$variable <- as.numeric(temp_other$variable)
+df <- rbind(temp2,temp_other)
+df <- as.data.frame(df)
+df$variable <- as.numeric(df$variable)
+
+g <- ggplot(df,aes(x=variable,y=value,group=t))+
+  theme_bw(base_size = 16)+
+  theme(panel.grid = element_blank(),legend.position = "true")+
+  labs(x="",y="",title="",colour="")+
+  scale_x_discrete(breaks=c(0,30,75,120),labels=waiver(),limits=c(0,30,75,120),expand=c(0.05,1))+
+  scale_y_continuous(breaks=seq(-1.5,1.75,0.65),labels=waiver(),limits=c(-1.5,1.75))+
+  geom_line(size=1.0,color="goldenrod1",aes(group=t))+
+  theme_bw()+
+  theme(plot.title = element_text(hjust = 0.5,size=20,face="italic"),panel.background=element_rect(color="black", size=1.9, fill="white" ),panel.grid.minor.y = element_blank(),panel.grid.major.x = element_line(colour="grey", size =1.0),panel.grid.major.y = element_blank(),panel.grid.minor.x = element_blank(),legend.position = "none",axis.title.x = element_text(size=15,margin=margin(t = 25, r = 0, b = 0, l = 0)),axis.title.y = element_text(size=16,margin=margin(t = 0, r = 25, b = 0, l = 0)),axis.text.x = element_text(size=15),axis.text.y = element_text(size=15));g
+
+g <- ggplot(temp2,aes(x=variable,y=value,group=t))+
+  theme_bw(base_size = 16)+
+  theme(panel.grid = element_blank(),legend.position = "true")+
+  labs(x="",y="",title="",colour="")+
+  scale_x_discrete(breaks=c(0,30,75,120),labels=waiver(),limits=c(0,30,75,120),expand=c(0.05,1))+
+  scale_y_continuous(breaks=seq(-1.5,1.75,0.65),labels=waiver(),limits=c(-1.5,1.75))+
+  geom_line(size=1.0,color="darkorange1",aes(group=t))+
+  theme_bw()+
+  theme(plot.title = element_text(hjust = 0.5,size=20,face="italic"),panel.background=element_rect(color="black", size=1.9, fill="white" ),panel.grid.minor.y = element_blank(),panel.grid.major.x = element_line(colour="grey", size =1.0),panel.grid.major.y = element_blank(),panel.grid.minor.x = element_blank(),legend.position = "none",axis.title.x = element_text(size=15,margin=margin(t = 25, r = 0, b = 0, l = 0)),axis.title.y = element_text(size=16,margin=margin(t = 0, r = 25, b = 0, l = 0)),axis.text.x = element_text(size=15),axis.text.y = element_text(size=15));g
+
+#Draw a heatmap of aggregated chromatin accessibility at all kB site enriched TNF-induced regions
 one <- read.table("../Data/204regions_regions.txt", sep = "\t")
 two <- read.table("../Data/453regions_regions.txt", sep = "\t")
 three <- read.table("../Data/348regions_regions.txt", sep = "\t")
@@ -241,65 +363,7 @@ siCtrl_three <- siCtrl[which(siCtrl[,2] %in% three[,3]),4:7]
 siCtrl_four <- siCtrl[which(siCtrl[,2] %in% four[,3]),4:7]
 siCtrl_five <- siCtrl[which(siCtrl[,2] %in% five[,3]),4:7]
 
-dfsiCtrl <- siCtrl_one
-dfsiCtrl <- siCtrl_two
-dfsiCtrl <- siCtrl_three
-dfsiCtrl <- siCtrl_four
-dfsiCtrl <- siCtrl_five
-
-dfsiCtrl <- as.data.frame(dfsiCtrl)
-rownames(dfsiCtrl) <- seq(1,dim(dfsiCtrl)[1],1)
-colnames(dfsiCtrl) <-  c("siCtrl_0","siCtrl_30","siCtrl_75","siCtrl_120")
-dfsiCtrl <- genescale(dfsiCtrl,axis=1,method="Z")
-dfsiCtrl <- as.data.frame(dfsiCtrl)
-dfsiCtrl <- dfsiCtrl[,1:4]
-dfsiCtrl <- as.data.frame(dfsiCtrl)
-
-p <- colnames(dfsiCtrl)
-t <- colnames(dfsiCtrl)
-dfsiCtrl$t <- seq(1,dim(dfsiCtrl)[1],1)
-temp <- reshape2::melt(dfsiCtrl,
-                       id="t",
-                       measure=p 
-)
-temp$variable <- as.character(temp$variable)
-temp$value <- as.numeric(temp$value)
-temp$t <- as.character(temp$t)
-g <- ggplot(temp,aes(as.factor(variable),as.factor(t)))+
-  geom_tile(aes(fill=value),)+
-  scale_fill_gradient(low="dodgerblue",high="red")+
-  labs(x = "",y = "")+ 
-  scale_x_discrete(breaks=c("siCtrl_0","siCtrl_30","siCtrl_75","siCtrl_120"),labels=waiver(),limits=c("siCtrl_0","siCtrl_30","siCtrl_75","siCtrl_120"),expand = c(0, 0))+ 
-  #scale_x_discrete(breaks=c("siIkBa_0","siIkBa_30","siIkBa_75","siIkBa_120"),labels=waiver(),limits=c("siIkBa_0","siIkBa_30","siIkBa_75","siIkBa_120"),expand = c(0, 0))+ 
-  scale_y_discrete(breaks=order(seq(1,temp$t[dim(temp)[1]],by=1),decreasing = FALSE),labels=order(seq(1,temp$t[dim(temp)[1]],by=1),decreasing = FALSE),limits=order(seq(1,temp$t[dim(temp)[1]],by=1),decreasing = FALSE),expand = c(0, 0))+
-  theme(legend.position = "right",axis.ticks = element_blank(), axis.text.x = element_text(size = 5, angle = 0, hjust = 0, colour = "black"),axis.text.y = element_text(size = 3, angle = 0, hjust = 0, colour = "black"));g
-
-#Draw a heatmap of aggregated chromatin accessibility at all kB site enriched TNF-induced regions
-one <- read.table("../Data/204regions_regions.txt", sep = "\t")
-two <- read.table("../Data/453regions_regions.txt", sep = "\t")
-three <- read.table("../Data/348regions_regions.txt", sep = "\t")
-four <- read.table("../Data/478regions_regions.txt", sep = "\t")
-five <- read.table("../Data/119regions_regions.txt", sep = "\t")
-
-one <- read.table("../Data/177regions_regions.txt", sep = "\t")
-two <- read.table("../Data/446regions_regions.txt", sep = "\t")
-three <- read.table("../Data/368regions_regions.txt", sep = "\t")
-four <- read.table("../Data/397regions_regions.txt", sep = "\t")
-five <- read.table("../Data/361regions_regions.txt", sep = "\t")
-
-#siCtrl <- read.table("../Data/TMM_RPM_DifferentialPeaks_siCtrl_before_and_after_mergedpeaks.txt",sep="\t",stringsAsFactors = FALSE)
-siCtrl <- read.table("../Data/TMM_RPM_in_siCtrl_at_DifferentialPeaks_mergedpeaks_in_siIkBa.txt",sep="\t",stringsAsFactors = FALSE)
-siCtrl <- siCtrl[order(siCtrl[,2]),]
-rownames(siCtrl) <- seq(1,dim(siCtrl)[1],1)
-siCtrl[,2] <- siCtrl[,2]+1
-siCtrl_one <- siCtrl[which(siCtrl[,2] %in% one[,3]),4:7]
-siCtrl_two <- siCtrl[which(siCtrl[,2] %in% two[,3]),4:7]
-siCtrl_three <- siCtrl[which(siCtrl[,2] %in% three[,3]),4:7]
-siCtrl_four <- siCtrl[which(siCtrl[,2] %in% four[,3]),4:7]
-siCtrl_five <- siCtrl[which(siCtrl[,2] %in% five[,3]),4:7]
-
-#siIkBa <- read.table("../Data/TMM_RPM_in_siIkBa_at_DifferentialPeaks_mergedpeaks_in_siCtrl.txt",sep="\t",stringsAsFactors = FALSE)
-siIkBa <- read.table("../Data/TMM_RPM_DifferentialPeaks_siIkBa_before_and_after_mergedpeaks.txt",sep="\t",stringsAsFactors = FALSE)
+siIkBa <- read.table("../Data/TMM_RPM_in_siIkBa_at_DifferentialPeaks_mergedpeaks_in_siCtrl.txt",sep="\t",stringsAsFactors = FALSE)
 siIkBa <- siIkBa[order(siIkBa[,2]),]
 rownames(siIkBa) <- seq(1,dim(siIkBa)[1],1)
 siIkBa[,2] <- siIkBa[,2]+1
@@ -341,23 +405,20 @@ g <- ggplot(temp,aes(as.factor(variable),as.factor(t)))+
   geom_tile(aes(fill=value),)+
   scale_fill_gradient(low="dodgerblue",high="red")+
   labs(x = "",y = "")+ 
-  #scale_x_discrete(breaks=c("siCtrl_0","siCtrl_30","siCtrl_75","siCtrl_120"),labels=waiver(),limits=c("siCtrl_0","siCtrl_30","siCtrl_75","siCtrl_120"),expand = c(0, 0))+ 
-  scale_x_discrete(breaks=c("siIkBa_0","siIkBa_30","siIkBa_75","siIkBa_120"),labels=waiver(),limits=c("siIkBa_0","siIkBa_30","siIkBa_75","siIkBa_120"),expand = c(0, 0))+ 
+  scale_x_discrete(breaks=c("siCtrl_0","siCtrl_30","siCtrl_75","siCtrl_120"),labels=waiver(),limits=c("siCtrl_0","siCtrl_30","siCtrl_75","siCtrl_120"),expand = c(0, 0))+ 
   scale_y_discrete(breaks=order(seq(1,temp$t[dim(temp)[1]],by=1),decreasing = TRUE),labels=order(seq(1,temp$t[dim(temp)[1]],by=1),decreasing = TRUE),limits=order(seq(1,temp$t[dim(temp)[1]],by=1),decreasing = TRUE),expand = c(0, 0))+
   theme(legend.position = "right",axis.ticks = element_blank(), axis.text.x = element_text(size = 5, angle = 0, hjust = 0, colour = "black"),axis.text.y = element_text(size = 3, angle = 0, hjust = 0, colour = "black"));g
 
 #Draw boxplots of aggregated chromatin accessibility between WT and siIkBa
-diff2 <- read.table("../Data/478regions_regions.txt", sep = "\t")
+diff2 <- read.table("../Data/204regions_regions.txt", sep = "\t")
 
 siCtrl <- read.table("../Data/TMM_RPM_DifferentialPeaks_siCtrl_before_and_after_mergedpeaks.txt",sep="\t",stringsAsFactors = FALSE)
-#siCtrl <- read.table("../Data/TMM_RPM_in_siCtrl_at_DifferentialPeaks_mergedpeaks_in_siIkBa.txt",sep="\t",stringsAsFactors = FALSE)
 siCtrl <- siCtrl[order(siCtrl[,2]),]
 rownames(siCtrl) <- seq(1,dim(siCtrl)[1],1)
 siCtrl[,2] <- siCtrl[,2]+1
 siCtrl <- siCtrl[which(siCtrl[,2] %in% diff2[,3]),]
 
 siIkBa <- read.table("../Data/TMM_RPM_in_siIkBa_at_DifferentialPeaks_mergedpeaks_in_siCtrl.txt",sep="\t",stringsAsFactors = FALSE)
-#siIkBa <- read.table("../Data/TMM_RPM_DifferentialPeaks_siIkBa_before_and_after_mergedpeaks.txt",sep="\t",stringsAsFactors = FALSE)
 siIkBa <- siIkBa[order(siIkBa[,2]),]
 rownames(siIkBa) <- seq(1,dim(siIkBa)[1],1)
 siIkBa[,2] <- siIkBa[,2]+1
@@ -416,18 +477,16 @@ g <- ggplot(df,
   geom_boxplot(position=position_dodge(0.9))+
   theme(panel.grid.major.y = element_blank(),panel.grid.minor.y = element_blank(),panel.grid.major.x = element_blank(),panel.grid.minor.x = element_blank(),legend.position = "true",panel.border=element_rect(fill=NA,color="black", size=0.5),axis.title.x = element_text(size=1,margin=margin(t = 35, r = 0, b = 0, l = 0)),axis.title.y = element_text(size=1,margin=margin(t = 0, r = 25, b = 0, l = 0)),axis.text.x = element_text(size=1),axis.text.y = element_text(size=1));g
 
-#Paired t-test of aggregated chromatin accessibility between WT and siIkBa
-diff2 <- read.table("../Data/453regions_regions.txt", sep = "\t")
+#Statistical test of aggregated chromatin accessibility between WT and siIkBa
+diff2 <- read.table("../Data/204regions_regions.txt", sep = "\t")
 
 siCtrl <- read.table("../Data/TMM_RPM_DifferentialPeaks_siCtrl_before_and_after_mergedpeaks.txt",sep="\t",stringsAsFactors = FALSE)
-#siCtrl <- read.table("../Data/TMM_RPM_in_siCtrl_at_DifferentialPeaks_mergedpeaks_in_siIkBa.txt",sep="\t",stringsAsFactors = FALSE)
 siCtrl <- siCtrl[order(siCtrl[,2]),]
 rownames(siCtrl) <- seq(1,dim(siCtrl)[1],1)
 siCtrl[,2] <- siCtrl[,2]+1
 siCtrl <- siCtrl[which(siCtrl[,2] %in% diff2[,3]),]
 
 siIkBa <- read.table("../Data/TMM_RPM_in_siIkBa_at_DifferentialPeaks_mergedpeaks_in_siCtrl.txt",sep="\t",stringsAsFactors = FALSE)
-#siIkBa <- read.table("../Data/TMM_RPM_DifferentialPeaks_siIkBa_before_and_after_mergedpeaks.txt",sep="\t",stringsAsFactors = FALSE)
 siIkBa <- siIkBa[order(siIkBa[,2]),]
 rownames(siIkBa) <- seq(1,dim(siIkBa)[1],1)
 siIkBa[,2] <- siIkBa[,2]+1
@@ -438,16 +497,10 @@ siCtrl <- as.data.frame(siCtrl)
 siIkBa <- siIkBa[,4:7]
 siIkBa <- as.data.frame(siIkBa)
 
-#Paired t-test of chromatin accessibility in aggregated cells
-t.test(x=siCtrl[,1],y=siIkBa[,1],paired=T,alternative="greater")
-t.test(x=siCtrl[,2],y=siIkBa[,2],paired=T,alternative="greater")
-t.test(x=siCtrl[,3],y=siIkBa[,3],paired=T,alternative="greater")
-t.test(x=siCtrl[,4],y=siIkBa[,4],paired=T,alternative="greater")
-
-t.test(x=siCtrl[,1],y=siIkBa[,1],paired=T,alternative="less")
-t.test(x=siCtrl[,2],y=siIkBa[,2],paired=T,alternative="less")
-t.test(x=siCtrl[,3],y=siIkBa[,3],paired=T,alternative="less")
-t.test(x=siCtrl[,4],y=siIkBa[,4],paired=T,alternative="less")
+wilcox.exact(x=siCtrl[,1],y=siIkBa[,1],paired=F,alternative="g")
+wilcox.exact(x=siCtrl[,2],y=siIkBa[,2],paired=F,alternative="g")
+wilcox.exact(x=siCtrl[,3],y=siIkBa[,3],paired=F,alternative="g")
+wilcox.exact(x=siCtrl[,4],y=siIkBa[,4],paired=F,alternative="g")
 
 #Accuracy of classifying single-cell chromatin accessibility between WT and siIkBa using 10-fold cross validation of Bayesian generalized linear model
 data <- read.table("../Data/DifferentialPeaks_siCtrl_before_and_after_mergedpeaks.txt", sep = "\t",header=FALSE)
