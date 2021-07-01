@@ -76,12 +76,12 @@ DRG2 <- read.table("../Data/Subcluster2_DRGs.txt",sep="\t",header= F)
 DRG <- c(as.character(DRG1[,1]),as.character(DRG2[,1]))
 DRG <- sort(DRG)
 
-Downregulated <- read.table("../Data/Downregulatedcluster_12022019.txt",sep="\t",header= T)
+Downregulated <- read.table("../Data/Downregulatedcluster.txt",sep="\t",header= T)
 Downregulated <- Downregulated[,2]
 Downregulated <- as.character(Downregulated)
 Downregulated[93] <- c("SEPT5")
 
-Others <- read.table("../Data/Otherscluster_12022019.txt",sep="\t",header= T)
+Others <- read.table("../Data/Otherscluster.txt",sep="\t",header= T)
 Others <- Others[,2]
 Others <- as.character(Others)
 
