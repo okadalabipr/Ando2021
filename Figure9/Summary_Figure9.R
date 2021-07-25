@@ -1,6 +1,7 @@
 library(ggplot2)
 library(scales)
 library(pracma)
+library(openxlsx)
 
 count <- read.csv("160712_ikbakd.csv")
 count1=count[,2:12]
