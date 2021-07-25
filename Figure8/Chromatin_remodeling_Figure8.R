@@ -14,18 +14,14 @@ refall <- c()
 maxs <- c()
 for(r in 1:length(names)){
   d <- names[r]
-  
   ref <- wt2[which(rownames(wt2)==d),]
-  
   data <- ref
   zero <- data[1,1]
   for(i in 1:13){
     data[1,i] <- data[1,i]/zero
   }
-  
   refwtfc <- data.frame(x=seq(0,180,15),y=as.numeric(data[1,]))
-  
-  
+   
   ref <- kd2[which(rownames(kd2)==d),]
   
   data <- ref
@@ -111,7 +107,7 @@ names <- names[order(names$Start),]
 rownames(names) <- seq(1,dim(names)[1],1)
 names <- names[,2:4]
 names <- makeGRangesFromDataFrame(names)
-promoter <- read.table("Promoter_up500down500TSS(’uŠ·Ï).txt",sep="\t")
+promoter <- read.table("Promoter_up500down500TSS(â€™uÅ Â·ÂÃ).txt",sep="\t")
 cluster <- read.table("Subcluster2_DRGs.txt",sep="\t")
 cluster[,1] <- as.character(cluster[,1])
 #cluster[27,1] <- c("NKX3-1")
