@@ -1216,7 +1216,7 @@ for(r in 1:length(names)[1]){
   rmsd <- dfde[smallest[r,2],1]
   
   count <- read.csv("../Data/160617_ikbakd.csv")
-  count1=count[,2:12]#6�`11��ڂ𒊏o
+  count1=count[,2:12]#6`11ñÚðo
   count1 <- data.frame(count1)
   mean <- count1[,2]
   condition <- count1[,1]
