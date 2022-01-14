@@ -10,6 +10,158 @@ library(ggplot2)
 
 
 #Draw a heatmap of simulation from Simple model
+#Draw a heatmap of simulation from simple model
+X2wt <- function(kdeg,kd) {
+  parameters2 <- c(kdeg=kdeg,kd=kd)
+  Lorenz2 <- function(times,state, parameters) {
+    with(as.list(c(state, parameters)), {
+      f <- ((kd*inputwt(times))/(1+kd*inputwt(times)))
+      dmrna <- f-(kdeg*mrna)
+      
+      return(list(c(dmrna)))
+    })
+  }
+  
+  f <- ((kd*inputwt(0))/(1+kd*inputwt(0)))
+  mrna0  <- f/kdeg
+  
+  state <- c(mrna=mrna0)
+  
+  out0 <- ode(y = state, times = seq(-3600,0,by=1),
+              func = Lorenz2, parms = parameters2)
+  out0 <- as.data.frame(out0)
+  return(out0)
+}
+
+X1wt <- function(kdeg,kd,tau) {
+  parameters <- c(kdeg=kdeg,kd=kd,tau=tau)
+  
+  f <- ((kd*inputwt(0))/(1+kd*inputwt(0)))
+  mrna0  <- f/kdeg
+  
+  X2wt <- function(kdeg,kd) {
+    parameters2 <- c(kdeg=kdeg,kd=kd)
+    Lorenz2 <- function(times,state, parameters) {
+      with(as.list(c(state, parameters)), {
+        f <- ((kd*inputwt(times))/(1+kd*inputwt(times)))
+        dmrna <- f-(kdeg*mrna)
+        
+        return(list(c(dmrna)))
+      })
+    }
+    
+    f <- ((kd*inputwt(0))/(1+kd*inputwt(0)))
+    mrna0  <- f/kdeg
+    
+    state <- c(mrna=mrna0)
+    
+    out0 <- ode(y = state, times = seq(-3600,0,by=1),
+                func = Lorenz2, parms = parameters2)
+    out0 <- as.data.frame(out0)
+    return(out0)
+  }
+  
+  mrnafirst <- X2wt(kdeg,kd)[3601,2]
+  
+  Lorenz <- function(times,state, parameters) {
+    with(as.list(c(state, parameters)), {
+      f <- ((kd*inputwt(times-tau))/(1+kd*inputwt(times-tau)))
+      dmrna <- f-kdeg*mrna
+      
+      return(list(c(dmrna)))
+    })
+  }
+  
+  state <- c(mrna=mrnafirst)
+  
+  out <- ode(y = state, times = seq(0,10800,by=1),
+             func = Lorenz, parms = parameters)
+  out <- as.data.frame(out)
+  
+  df <- rbind(X2wt(kdeg,kd),out[2:dim(out)[1],])
+  x <- df[which(df[,1] %in% seq(0,10800,by=1)),1]
+  y <- df[which(df[,1] %in% seq(0,10800,by=1)),2]
+  df <- data.frame(time=x,mrna=y)
+  
+  return(df)
+}
+
+X2kd <- function(kdeg,kd) {
+  parameters2 <- c(kdeg=kdeg,kd=kd)
+  Lorenz2 <- function(times,state, parameters) {
+    with(as.list(c(state, parameters)), {
+      f <- ((kd*inputkd(times))/(1+kd*inputkd(times)))
+      dmrna <- f-kdeg*mrna
+      
+      return(list(c(dmrna)))
+    })
+  }
+  
+  f <- ((kd*inputkd(0))/(1+kd*inputkd(0)))
+  mrna0  <- f/kdeg
+  
+  state <- c(mrna=mrna0)
+  
+  out0 <- ode(y = state, times = seq(-3600,0,by=1),
+              func = Lorenz2, parms = parameters2)
+  out0 <- as.data.frame(out0)
+  return(out0)
+}
+
+X1kd <- function(kdeg,kd,tau) {
+  parameters <- c(kdeg=kdeg,kd=kd,tau=tau)
+  
+  f <- ((kd*inputkd(0))/(1+kd*inputkd(0)))
+  mrna0  <- f/kdeg
+  
+  X2kd <- function(kdeg,kd) {
+    parameters2 <- c(kdeg=kdeg,kd=kd)
+    Lorenz2 <- function(times,state, parameters) {
+      with(as.list(c(state, parameters)), {
+        f <- ((kd*inputkd(times))/(1+kd*inputkd(times)))
+        dmrna <- f-kdeg*mrna
+        
+        return(list(c(dmrna)))
+      })
+    }
+    
+    f <- ((kd*inputkd(0))/(1+kd*inputkd(0)))
+    mrna0  <- f/kdeg
+    
+    state <- c(mrna=mrna0)
+    
+    out0 <- ode(y = state, times = seq(-3600,0,by=1),
+                func = Lorenz2, parms = parameters2)
+    out0 <- as.data.frame(out0)
+    return(out0)
+  }
+  
+  mrnafirst <- X2kd(kdeg,kd)[3601,2]
+  
+  Lorenz <- function(times,state, parameters) {
+    with(as.list(c(state, parameters)), {
+      f <- ((kd*inputkd(times-tau))/(1+kd*inputkd(times-tau)))
+      dmrna <- f-kdeg*mrna
+      
+      return(list(c(dmrna)))
+    })
+  }
+  
+  state <- c(mrna=mrnafirst)
+  
+  out <- ode(y = state, times = seq(0,10800,by=1),
+             func = Lorenz, parms = parameters)
+  out <- as.data.frame(out)
+  
+  
+  df <- rbind(X2kd(kdeg,kd),out[2:dim(out)[1],])
+  x <- df[which(df[,1] %in% seq(0,10800,by=1)),1]
+  y <- df[which(df[,1] %in% seq(0,10800,by=1)),2]
+  df <- data.frame(time=x,mrna=y)
+  
+  return(df)
+}
+
 smallest <- read.table("../Data/Simple_ERGsmallest.txt", sep = "\t",skip=1)
 except_simple_ERG <- c("EFNA1","GADD45A","IRF1","IRS2","JUNB","KLF10","NUAK2","PHLDA1","PPP1R15A","PTGER4","RND1","SOX9","SPRY4","SPSB1","TNFAIP3","ZC3H12A")
 smallest <- smallest[-which(smallest[,1] %in% except_simple_ERG),]
@@ -262,6 +414,335 @@ Simple_refall3 <- Simple_refall2[,1:13]
 Simple_refall3 <- Simple_refall2[,14:26]
 
 #Draw a heatmap of simulation from IFFL model
+kdegTF <- log(2)/(24*60*60)
+KDTF <- 100
+
+D2wt <- function(kdegTF,KDTF) {
+  parameters2 <- c(kdegTF=kdegTF,KDTF=KDTF)   
+  Lorenz2 <- function(times, state, parameters2){
+    with(as.list(c(state, parameters2)), {
+      
+      dTF <- (((KDTF*inputwt(times))/(1+KDTF*inputwt(times))))-kdegTF*TF
+      
+      return(list(c(dTF)))
+    })
+  }
+  
+  TF0  <- (((KDTF*inputwt(0))/(1+KDTF*inputwt(0))))/kdegTF
+  
+  state <- c(TF=TF0)
+  
+  out0 <- ode(y = state, times = seq(-3600,0,by=1),
+              func = Lorenz2, parms = parameters2)
+  out0 <- as.data.frame(out0)
+  return(out0)
+}
+
+D4wt <- function(kdegTF,KDTF) {
+  parameters4 <- c(kdegTF=kdegTF,KDTF=KDTF)   
+  
+  TFfirst <- D2wt(kdegTF,KDTF)[3601,2]
+  
+  Lorenz4 <- function(times, state, parameters4){
+    with(as.list(c(state, parameters4)), {
+      
+      dTF <- (((KDTF*inputwt(times))/(1+KDTF*inputwt(times))))-kdegTF*TF
+      
+      return(list(c(dTF)))
+      
+    })
+  }
+  
+  state <- c(TF=TFfirst)
+  
+  out0 <- ode(y = state, times = seq(0,10800,by=1),
+              func = Lorenz4, parms = parameters4)
+  out0 <- as.data.frame(out0)
+  return(out0)
+}
+
+
+
+D3wt <- function(kdeg,KD1,KD2) {
+  parameters3 <- c(kdeg=kdeg,KD1=KD1,KD2=KD2)  
+  
+  signal2 <- data.frame(time = D2wt(kdegTF,KDTF)[,1],tf = D2wt(kdegTF,KDTF)[,2])
+  sigimp2 <- approxfun(signal2$time, signal2$tf, rule = 2)
+  input2wt <- sigimp2
+  
+  Lorenz3 <- function(times, state, parameters3){
+    with(as.list(c(state, parameters3)), {
+      
+      dmrna = ((KD1*inputwt(times))^2)/(((KD1*inputwt(times))^2)+((KD2*input2wt(times))^2)+1)-kdeg*mrna
+      
+      return(list(c(dmrna)))
+    })
+  }
+  
+  mrna0 = ((KD1*inputwt(0))^2)/(((KD1*inputwt(0))^2)+((KD2*input2wt(0))^2)+1)/kdeg
+  
+  state <- c(mrna=mrna0)
+  
+  out0 <- ode(y = state, times = seq(-3600,0,by=1),
+              func = Lorenz3, parms = parameters3)
+  out0 <- as.data.frame(out0)
+  return(out0)
+}
+
+D5wt <- function(kdeg,KD1,KD2,tau) {
+  parameters5 <- c(kdeg=kdeg,KD1=KD1,KD2=KD2,tau=tau) 
+  
+  signal3 <- data.frame(time = D4wt(kdegTF,KDTF)[,1],tf = D4wt(kdegTF,KDTF)[,2])
+  sigimp3 <- approxfun(signal3$time, signal3$tf, rule = 2)
+  input3wt <- sigimp3
+  
+  mrnafirst <- D3wt(kdeg,KD1,KD2)[3601,2]
+  
+  Lorenz5 <- function(times, state, parameters5){
+    with(as.list(c(state, parameters5)), {
+      
+      dmrna = ((KD1*inputwt(times-tau))^2)/(((KD1*inputwt(times-tau))^2)+((KD2*input3wt(times-7200))^2)+1)-kdeg*mrna
+      
+      return(list(c(dmrna)))
+    })
+  }
+  
+  state <- c(mrna=mrnafirst)
+  
+  out0 <- ode(y = state, times = seq(0,10800,by=1),
+              func = Lorenz5, parms = parameters5)
+  out0 <- as.data.frame(out0)
+  return(out0)
+}
+
+D1wt <- function(kdeg,KD1,KD2,tau) {
+  parameters <- c(kdeg=kdeg,KD1=KD1,KD2=KD2,tau=tau)
+  
+  D3wt <- function(kdeg,KD1,KD2) {
+    parameters3 <- c(kdeg=kdeg,KD1=KD1,KD2=KD2)  
+    
+    signal2 <- data.frame(time = D2wt(kdegTF,KDTF)[,1],tf = D2wt(kdegTF,KDTF)[,2])
+    sigimp2 <- approxfun(signal2$time, signal2$tf, rule = 2)
+    input2wt <- sigimp2
+    
+    Lorenz3 <- function(times, state, parameters3){
+      with(as.list(c(state, parameters3)), {
+        
+        dmrna = ((KD1*inputwt(times))^2)/(((KD1*inputwt(times))^2)+((KD2*input2wt(times))^2)+1)-kdeg*mrna
+        
+        return(list(c(dmrna)))
+      })
+    }
+    
+    mrna0 = ((KD1*inputwt(0))^2)/(((KD1*inputwt(0))^2)+((KD2*input2wt(0))^2)+1)/kdeg
+    
+    state <- c(mrna=mrna0)
+    
+    out0 <- ode(y = state, times = seq(-3600,0,by=1),
+                func = Lorenz3, parms = parameters3)
+    out0 <- as.data.frame(out0)
+    return(out0)
+  }
+  
+  D5wt <- function(kdeg,KD1,KD2,tau) {
+    parameters5 <- c(kdeg=kdeg,KD1=KD1,KD2=KD2,tau=tau) 
+    
+    signal3 <- data.frame(time = D4wt(kdegTF,KDTF)[,1],tf = D4wt(kdegTF,KDTF)[,2])
+    sigimp3 <- approxfun(signal3$time, signal3$tf, rule = 2)
+    input3wt <- sigimp3
+    
+    mrnafirst <- D3wt(kdeg,KD1,KD2)[3601,2]
+    
+    Lorenz5 <- function(times, state, parameters5){
+      with(as.list(c(state, parameters5)), {
+        
+        dmrna = ((KD1*inputwt(times-tau))^2)/(((KD1*inputwt(times-tau))^2)+((KD2*input3wt(times-7200))^2)+1)-kdeg*mrna
+        
+        return(list(c(dmrna)))
+      })
+    }
+    
+    state <- c(mrna=mrnafirst)
+    
+    out0 <- ode(y = state, times = seq(0,10800,by=1),
+                func = Lorenz5, parms = parameters5)
+    out0 <- as.data.frame(out0)
+    return(out0)
+  }
+  
+  dfTF <- rbind(D2wt(kdegTF,KDTF),D4wt(kdegTF,KDTF)[2:dim(D4wt(kdegTF,KDTF))[1],])
+  dftarget <- rbind(D3wt(kdeg,KD1,KD2),D5wt(kdeg,KD1,KD2,tau)[2:dim(D5wt(kdeg,KD1,KD2,tau))[1],])
+  
+  x <- dftarget[which(dftarget[,1] %in% seq(0,10800,by=1)),1]
+  y <- dftarget[which(dftarget[,1] %in% seq(0,10800,by=1)),2]
+  df <- data.frame(time=x,mrna=y)
+  
+  return(df)
+}
+
+D2kd <- function(kdegTF,KDTF) {
+  parameters2 <- c(kdegTF=kdegTF,KDTF=KDTF)   
+  Lorenz2 <- function(times, state, parameters2){
+    with(as.list(c(state, parameters2)), {
+      
+      dTF <- (((KDTF*inputkd(times))/(1+KDTF*inputkd(times))))-kdegTF*TF
+      
+      return(list(c(dTF)))
+    })
+  }
+  
+  TF0  <- (((KDTF*inputkd(0))/(1+KDTF*inputkd(0))))/kdegTF
+  
+  state <- c(TF=TF0)
+  
+  out0 <- ode(y = state, times = seq(-3600,0,by=1),
+              func = Lorenz2, parms = parameters2)
+  out0 <- as.data.frame(out0)
+  return(out0)
+}
+
+D4kd <- function(kdegTF,KDTF) {
+  parameters4 <- c(kdegTF=kdegTF,KDTF=KDTF)   
+  
+  TFfirst <- D2kd(kdegTF,KDTF)[3601,2]
+  
+  Lorenz4 <- function(times, state, parameters4){
+    with(as.list(c(state, parameters4)), {
+      
+      dTF <- (((KDTF*inputkd(times))/(1+KDTF*inputkd(times))))-kdegTF*TF
+      
+      return(list(c(dTF)))
+      
+    })
+  }
+  
+  state <- c(TF=TFfirst)
+  
+  out0 <- ode(y = state, times = seq(0,10800,by=1),
+              func = Lorenz4, parms = parameters4)
+  out0 <- as.data.frame(out0)
+  return(out0)
+}
+
+
+
+D3kd <- function(kdeg,KD1,KD2) {
+  parameters3 <- c(kdeg=kdeg,KD1=KD1,KD2=KD2)  
+  
+  signal2 <- data.frame(time = D2kd(kdegTF,KDTF)[,1],tf = D2kd(kdegTF,KDTF)[,2])
+  sigimp2 <- approxfun(signal2$time, signal2$tf, rule = 2)
+  input2kd <- sigimp2
+  
+  Lorenz3 <- function(times, state, parameters3){
+    with(as.list(c(state, parameters3)), {
+      
+      dmrna = ((KD1*inputkd(times))^2)/(((KD1*inputkd(times))^2)+((KD2*input2kd(times))^2)+1)-kdeg*mrna
+      
+      return(list(c(dmrna)))
+    })
+  }
+  
+  mrna0 = ((KD1*inputkd(0))^2)/(((KD1*inputkd(0))^2)+((KD2*input2kd(0))^2)+1)/kdeg
+  
+  state <- c(mrna=mrna0)
+  
+  out0 <- ode(y = state, times = seq(-3600,0,by=1),
+              func = Lorenz3, parms = parameters3)
+  out0 <- as.data.frame(out0)
+  return(out0)
+}
+
+D5kd <- function(kdeg,KD1,KD2,tau) {
+  parameters5 <- c(kdeg=kdeg,KD1=KD1,KD2=KD2,tau=tau) 
+  
+  signal3 <- data.frame(time = D4kd(kdegTF,KDTF)[,1],tf = D4kd(kdegTF,KDTF)[,2])
+  sigimp3 <- approxfun(signal3$time, signal3$tf, rule = 2)
+  input3kd <- sigimp3
+  
+  mrnafirst <- D3kd(kdeg,KD1,KD2)[3601,2]
+  
+  Lorenz5 <- function(times, state, parameters5){
+    with(as.list(c(state, parameters5)), {
+      
+      dmrna = ((KD1*inputkd(times-tau))^2)/(((KD1*inputkd(times-tau))^2)+((KD2*input3kd(times-7200))^2)+1)-kdeg*mrna
+      
+      return(list(c(dmrna)))
+    })
+  }
+  
+  state <- c(mrna=mrnafirst)
+  
+  out0 <- ode(y = state, times = seq(0,10800,by=1),
+              func = Lorenz5, parms = parameters5)
+  out0 <- as.data.frame(out0)
+  return(out0)
+}
+
+D1kd <- function(kdeg,KD1,KD2,tau) {
+  parameters <- c(kdeg=kdeg,KD1=KD1,KD2=KD2,tau=tau)
+  
+  D3kd <- function(kdeg,KD1,KD2) {
+    parameters3 <- c(kdeg=kdeg,KD1=KD1,KD2=KD2)  
+    
+    signal2 <- data.frame(time = D2kd(kdegTF,KDTF)[,1],tf = D2kd(kdegTF,KDTF)[,2])
+    sigimp2 <- approxfun(signal2$time, signal2$tf, rule = 2)
+    input2kd <- sigimp2
+    
+    Lorenz3 <- function(times, state, parameters3){
+      with(as.list(c(state, parameters3)), {
+        
+        dmrna = ((KD1*inputkd(times))^2)/(((KD1*inputkd(times))^2)+((KD2*input2kd(times))^2)+1)-kdeg*mrna
+        
+        return(list(c(dmrna)))
+      })
+    }
+    
+    mrna0 = ((KD1*inputkd(0))^2)/(((KD1*inputkd(0))^2)+((KD2*input2kd(0))^2)+1)/kdeg
+    
+    state <- c(mrna=mrna0)
+    
+    out0 <- ode(y = state, times = seq(-3600,0,by=1),
+                func = Lorenz3, parms = parameters3)
+    out0 <- as.data.frame(out0)
+    return(out0)
+  }
+  
+  D5kd <- function(kdeg,KD1,KD2,tau) {
+    parameters5 <- c(kdeg=kdeg,KD1=KD1,KD2=KD2,tau=tau) 
+    
+    signal3 <- data.frame(time = D4kd(kdegTF,KDTF)[,1],tf = D4kd(kdegTF,KDTF)[,2])
+    sigimp3 <- approxfun(signal3$time, signal3$tf, rule = 2)
+    input3kd <- sigimp3
+    
+    mrnafirst <- D3kd(kdeg,KD1,KD2)[3601,2]
+    
+    Lorenz5 <- function(times, state, parameters5){
+      with(as.list(c(state, parameters5)), {
+        
+        dmrna = ((KD1*inputkd(times-tau))^2)/(((KD1*inputkd(times-tau))^2)+((KD2*input3kd(times-7200))^2)+1)-kdeg*mrna
+        
+        return(list(c(dmrna)))
+      })
+    }
+    
+    state <- c(mrna=mrnafirst)
+    
+    out0 <- ode(y = state, times = seq(0,10800,by=1),
+                func = Lorenz5, parms = parameters5)
+    out0 <- as.data.frame(out0)
+    return(out0)
+  }
+  
+  dfTF <- rbind(D2kd(kdegTF,KDTF),D4kd(kdegTF,KDTF)[2:dim(D4kd(kdegTF,KDTF))[1],])
+  dftarget <- rbind(D3kd(kdeg,KD1,KD2),D5kd(kdeg,KD1,KD2,tau)[2:dim(D5kd(kdeg,KD1,KD2,tau))[1],])
+  
+  x <- dftarget[which(dftarget[,1] %in% seq(0,10800,by=1)),1]
+  y <- dftarget[which(dftarget[,1] %in% seq(0,10800,by=1)),2]
+  df <- data.frame(time=x,mrna=y)
+  
+  return(df)
+}
+
 smallest <- read.table("../Data/IFFL_ERGsmallest.txt", sep = "\t",skip=1)
 IFFL_ERG <- c("EFNA1","IRF1","SPRY4")
 smallest <- smallest[which(smallest[,1] %in% IFFL_ERG),]
@@ -515,21 +996,6 @@ IFFL_refall3 <- IFFL_refall2[,1:13]
 IFFL_refall3 <- IFFL_refall2[,14:26]
 
 #Draw a heatmap of simulation from Cycle model
-smallest <- read.table("../Data/Cycle_ERGsmallest.txt", sep = "\t",skip=1)
-Cycle_ERG <- c("ZC3H12A")
-smallest <- smallest[which(smallest[,1] %in% Cycle_ERG),]
-
-smallest <- read.table("../Data/Cycle_IRGsmallest.txt", sep = "\t",skip=1)
-Cycle_IRG <- c("ADGRG6","AMIGO2","ATP1B1","BCL2L11","BID","BIRC3","CLIC4","RBM3","RHOV","TNFRSF11B")
-smallest <- smallest[which(smallest[,1] %in% Cycle_IRG),]
-
-smallest <- read.table("../Data/Cycle_DRGsmallest.txt", sep = "\t",skip=1)
-Cycle_DRG <- c("ABAT","ABTB2","AOX1","FOXO1","IFNGR2","IRF2","LINC02015","MGAT4A","NFATC2","NFKB1","PRKAR2B","RUNX2","TAP1","TBC1D9","TNFAIP2","VDR")
-smallest <- smallest[which(smallest[,1] %in% Cycle_DRG),]
-
-names <- smallest[,1]
-smallest <- smallest[,2:3]
-
 wtBase0 <- function(k1,k2,KD1,KD2) { 
   
   pars <- c(k1=k1,k2=k2,KD1=KD1,KD2=KD2)
@@ -1084,6 +1550,21 @@ kdModels <- function(k1,k2,KD1,KD2,kdeg,tau) {
   return(df)
 }
 
+smallest <- read.table("../Data/Cycle_ERGsmallest.txt", sep = "\t",skip=1)
+Cycle_ERG <- c("ZC3H12A")
+smallest <- smallest[which(smallest[,1] %in% Cycle_ERG),]
+
+smallest <- read.table("../Data/Cycle_IRGsmallest.txt", sep = "\t",skip=1)
+Cycle_IRG <- c("ADGRG6","AMIGO2","ATP1B1","BCL2L11","BID","BIRC3","CLIC4","RBM3","RHOV","TNFRSF11B")
+smallest <- smallest[which(smallest[,1] %in% Cycle_IRG),]
+
+smallest <- read.table("../Data/Cycle_DRGsmallest.txt", sep = "\t",skip=1)
+Cycle_DRG <- c("ABAT","ABTB2","AOX1","FOXO1","IFNGR2","IRF2","LINC02015","MGAT4A","NFATC2","NFKB1","PRKAR2B","RUNX2","TAP1","TBC1D9","TNFAIP2","VDR")
+smallest <- smallest[which(smallest[,1] %in% Cycle_DRG),]
+
+names <- smallest[,1]
+smallest <- smallest[,2:3]
+
 wtrmsdvalue <- c()
 kdrmsdvalue <- c()
 refall <- c()
@@ -1216,7 +1697,7 @@ for(r in 1:length(names)[1]){
   rmsd <- dfde[smallest[r,2],1]
   
   count <- read.csv("../Data/160617_ikbakd.csv")
-  count1=count[,2:12]#6�`11��ڂ𒊏o
+  count1=count[,2:12]#6`11ñÚðo
   count1 <- data.frame(count1)
   mean <- count1[,2]
   condition <- count1[,1]
@@ -1328,21 +1809,6 @@ Cycle_refall3 <- Cycle_refall2[,1:13]
 Cycle_refall3 <- Cycle_refall2[,14:26]
 
 #Draw a heatmap of simulation from Model v4
-smallest <- read.table("../Data/Model_v4_ERGsmallest.txt", sep = "\t",skip=1)
-Combination_ERG <- c("GADD45A","IRS2","JUNB","KLF10","NUAK2","PHLDA1","PPP1R15A","PTGER4","RND1","SOX9","SPSB1","TNFAIP3")
-smallest <- smallest[which(smallest[,1] %in% Combination_ERG),]
-
-smallest <- read.table("../Data/Model_v4_IRGsmallest.txt", sep = "\t",skip=1)
-Combination_IRG <- c("ANXA8","CDKN2B","EIF5","MAFF","NCOA7","NEDD9","TICAM1")
-smallest <- smallest[which(smallest[,1] %in% Combination_IRG),]
-
-smallest <- read.table("../Data/Model_v4_DRGsmallest.txt", sep = "\t",skip=1)
-Combination_DRG <- c("B4GALT5","BAZ1A","CLK4","DDX58","HIVEP2","KLHL5","LAMC2","NFKB2","PHLDB2","RSRC2","SERPINB8","TUBD1")
-smallest <- smallest[which(smallest[,1] %in% Combination_DRG),]
-
-names <- smallest[,1]
-smallest <- smallest[,2:3]
-
 kdegTF <- log(2)/(24*60*60)
 KDTF <- 100
 
@@ -2007,6 +2473,21 @@ kdModels <- function(k1,k2,KD1,KD2,KDTF2,kdeg,tau) {
   
   return(df)
 }
+
+smallest <- read.table("../Data/Model_v4_ERGsmallest.txt", sep = "\t",skip=1)
+Combination_ERG <- c("GADD45A","IRS2","JUNB","KLF10","NUAK2","PHLDA1","PPP1R15A","PTGER4","RND1","SOX9","SPSB1","TNFAIP3")
+smallest <- smallest[which(smallest[,1] %in% Combination_ERG),]
+
+smallest <- read.table("../Data/Model_v4_IRGsmallest.txt", sep = "\t",skip=1)
+Combination_IRG <- c("ANXA8","CDKN2B","EIF5","MAFF","NCOA7","NEDD9","TICAM1")
+smallest <- smallest[which(smallest[,1] %in% Combination_IRG),]
+
+smallest <- read.table("../Data/Model_v4_DRGsmallest.txt", sep = "\t",skip=1)
+Combination_DRG <- c("B4GALT5","BAZ1A","CLK4","DDX58","HIVEP2","KLHL5","LAMC2","NFKB2","PHLDB2","RSRC2","SERPINB8","TUBD1")
+smallest <- smallest[which(smallest[,1] %in% Combination_DRG),]
+
+names <- smallest[,1]
+smallest <- smallest[,2:3]
 
 wtrmsdvalue <- c()
 kdrmsdvalue <- c()
